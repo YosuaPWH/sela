@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T11:00:50Z",
+  "title": "Design System: Luma Notch",
+  "extensions": {
+    "colorMeta": {
+      "notch-black": {
+        "displayName": "Notch Black",
+        "tonalRamp": [
+          "oklch(15.00% 0.00400 164.84)",
+          "oklch(26.43% 0.00400 164.84)",
+          "oklch(37.86% 0.00400 164.84)",
+          "oklch(49.29% 0.00400 164.84)",
+          "oklch(60.71% 0.00400 164.84)",
+          "oklch(72.14% 0.00400 164.84)",
+          "oklch(83.57% 0.00400 164.84)",
+          "oklch(95.00% 0.00400 164.84)"
+        ],
+        "role": "neutral"
+      },
+      "raised-charcoal": {
+        "displayName": "Raised Charcoal",
+        "tonalRamp": [
+          "oklch(15.00% 0.01135 156.35)",
+          "oklch(26.43% 0.01135 156.35)",
+          "oklch(37.86% 0.01135 156.35)",
+          "oklch(49.29% 0.01135 156.35)",
+          "oklch(60.71% 0.01135 156.35)",
+          "oklch(72.14% 0.01135 156.35)",
+          "oklch(83.57% 0.01135 156.35)",
+          "oklch(95.00% 0.01135 156.35)"
+        ],
+        "role": "neutral"
+      },
+      "control-hover": {
+        "displayName": "Control Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.01808 154.80)",
+          "oklch(26.43% 0.01808 154.80)",
+          "oklch(37.86% 0.01808 154.80)",
+          "oklch(49.29% 0.01808 154.80)",
+          "oklch(60.71% 0.01808 154.80)",
+          "oklch(72.14% 0.01808 154.80)",
+          "oklch(83.57% 0.01808 154.80)",
+          "oklch(95.00% 0.01808 154.80)"
+        ],
+        "role": "neutral"
+      },
+      "soft-white": {
+        "displayName": "Soft White",
+        "tonalRamp": [
+          "oklch(15.00% 0.00413 157.18)",
+          "oklch(26.43% 0.00413 157.18)",
+          "oklch(37.86% 0.00413 157.18)",
+          "oklch(49.29% 0.00413 157.18)",
+          "oklch(60.71% 0.00413 157.18)",
+          "oklch(72.14% 0.00413 157.18)",
+          "oklch(83.57% 0.00413 157.18)",
+          "oklch(95.00% 0.00413 157.18)"
+        ],
+        "role": "neutral"
+      },
+      "muted-sage": {
+        "displayName": "Muted Sage",
+        "tonalRamp": [
+          "oklch(15.00% 0.01573 158.13)",
+          "oklch(26.43% 0.01573 158.13)",
+          "oklch(37.86% 0.01573 158.13)",
+          "oklch(49.29% 0.01573 158.13)",
+          "oklch(60.71% 0.01573 158.13)",
+          "oklch(72.14% 0.01573 158.13)",
+          "oklch(83.57% 0.01573 158.13)",
+          "oklch(95.00% 0.01573 158.13)"
+        ],
+        "role": "neutral"
+      },
+      "mint": {
+        "displayName": "Mint",
+        "tonalRamp": [
+          "oklch(15.00% 0.09380 154.89)",
+          "oklch(26.43% 0.09380 154.89)",
+          "oklch(37.86% 0.09380 154.89)",
+          "oklch(49.29% 0.09380 154.89)",
+          "oklch(60.71% 0.09380 154.89)",
+          "oklch(72.14% 0.09380 154.89)",
+          "oklch(83.57% 0.09380 154.89)",
+          "oklch(95.00% 0.09380 154.89)"
+        ],
+        "role": "primary"
+      },
+      "error-coral": {
+        "displayName": "Error Coral",
+        "tonalRamp": [
+          "oklch(15.00% 0.08908 26.76)",
+          "oklch(26.43% 0.08908 26.76)",
+          "oklch(37.86% 0.08908 26.76)",
+          "oklch(49.29% 0.08908 26.76)",
+          "oklch(60.71% 0.08908 26.76)",
+          "oklch(72.14% 0.08908 26.76)",
+          "oklch(83.57% 0.08908 26.76)",
+          "oklch(95.00% 0.08908 26.76)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Focus timer",
+        "purpose": "Native embedded Hack Regular for the central timer."
+      },
+      "title": {
+        "displayName": "App title",
+        "purpose": "Native embedded Ubuntu-Light for the app header."
+      },
+      "body": {
+        "displayName": "Labels and controls",
+        "purpose": "Native embedded Ubuntu-Light proportional text."
+      },
+      "metric": {
+        "displayName": "Measured values",
+        "purpose": "Native embedded Hack Regular for system measurements."
+      },
+      "caption": {
+        "displayName": "Supporting captions",
+        "purpose": "Secondary status and settings information."
+      },
+      "time-caption": {
+        "displayName": "Media timestamps",
+        "purpose": "Compact elapsed and total times in Hack Regular."
+      },
+      "footer": {
+        "displayName": "Quiet footer",
+        "purpose": "Bottom status and attention text."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "notch-expansion",
+        "value": "240ms; ctx.animate_bool_with_time, then 1 - (1 - t)^3",
+        "purpose": "Interpolate compact and expanded native geometry; compact content remains until the animation value reaches 0.98."
+      },
+      {
+        "name": "widget-animation",
+        "value": "200ms",
+        "purpose": "egui style animation_time; native default widget interpolation."
+      },
+      {
+        "name": "hover-open-delay",
+        "value": "240ms",
+        "purpose": "Wait before opening when pointer hover expansion is enabled."
+      },
+      {
+        "name": "hover-close-delay",
+        "value": "650ms",
+        "purpose": "Collapse an unpinned hover-opened panel after pointer exit."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0ms",
+        "purpose": "Snap notch geometry to the compact or expanded destination when reduced motion is enabled."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Compact notch",
+      "kind": "custom",
+      "refersTo": "notch-compact",
+      "description": "Native 324 × 48 logical-point shell with logo and clipped status. Browser illustration uses locally available Ubuntu or sans fallback.",
+      "html": "<button class=\"ds-notch\" aria-label=\"Buka Luma\"><svg aria-hidden=\"true\" width=\"22\" height=\"24\" viewBox=\"-11 -12 22 24\"><path d=\"M-7-3v6M0-7v14M7-4.5v9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\"/></svg><span class=\"ds-notch-label\">Luma</span><span class=\"ds-notch-trailing\">•••</span></button>",
+      "css": ".ds-notch{width:324px;height:48px;display:flex;align-items:center;gap:12px;padding:0 24px;border:0;border-radius:0 0 24px 24px;background:#090B0A;color:#A9EEC0;font:300 13px Ubuntu,sans-serif;text-align:left;cursor:pointer}.ds-notch-label{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#F3F6F4}.ds-notch-trailing{font-size:11px;color:#A9B4AD}.ds-notch:hover{cursor:pointer}.ds-notch:focus-visible{outline:1px solid #A9EEC0;outline-offset:-2px}.ds-notch:active{background:#090B0A}"
+    },
+    {
+      "name": "Selected task tab",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Native task tab: mint label and authored 17-point icon on charcoal; hover raises the surface and keyboard focus adds a 1-point inner outline.",
+      "html": "<button class=\"ds-tab\" aria-current=\"page\"><svg aria-hidden=\"true\" width=\"17\" height=\"17\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\"><circle cx=\"10\" cy=\"11\" r=\"6.4\"/><path d=\"M10 11V6.8M8 1.6h4M10 1.6v2\"/></svg><span>Fokus</span></button>",
+      "css": ".ds-tab{width:99px;height:34px;display:inline-flex;align-items:center;gap:7px;padding:0 11px;border:0;border-radius:8px;background:#202622;color:#A9EEC0;font:300 13px Ubuntu,sans-serif;cursor:pointer}.ds-tab:hover{background:#202622}.ds-tab:focus-visible{outline:1px solid #A9EEC0;outline-offset:-1px}.ds-tab:active{background:#202622}"
+    },
+    {
+      "name": "Focus action",
+      "kind": "button",
+      "refersTo": "button-focus",
+      "description": "The mint principal action starts, pauses, or resumes focus. Browser border states illustrate egui interaction; exact painting remains native.",
+      "html": "<button class=\"ds-focus-action\">Mulai fokus</button>",
+      "css": ".ds-focus-action{width:160px;min-height:35px;padding:8px 14px;border:1px solid transparent;border-radius:8px;background:#A9EEC0;color:#090B0A;font:300 13px Ubuntu,sans-serif;cursor:pointer}.ds-focus-action:hover{border-color:#F3F6F4}.ds-focus-action:focus-visible{outline:1px solid #A9EEC0;outline-offset:2px}.ds-focus-action:active{background:#A9EEC0}"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Native 32-point target with a 20-point authored icon, a charcoal hover surface, and a mint keyboard focus outline.",
+      "html": "<button class=\"ds-icon-button\" aria-label=\"Biarkan panel terbuka\" title=\"Biarkan panel terbuka\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\"><path d=\"M7 3.6h6M7.6 3.6v5.6L4.6 13h10.8l-3-3.8V3.6M10 13v5\"/></svg></button>",
+      "css": ".ds-icon-button{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;padding:6px;border:0;border-radius:8px;background:transparent;color:#A9B4AD;cursor:pointer}.ds-icon-button:hover{background:#202622}.ds-icon-button:focus-visible{outline:1px solid #A9EEC0;outline-offset:-1px}.ds-icon-button:active{background:#202622}.ds-icon-button:disabled{opacity:.35;cursor:default}"
+    },
+    {
+      "name": "Active icon button",
+      "kind": "button",
+      "refersTo": "button-icon-active",
+      "description": "The pinned header control uses mint on charcoal. Native disabled controls dim their icon through Color32 gamma multiplication; browser opacity is only an approximation.",
+      "html": "<button class=\"ds-icon-active\" aria-label=\"Lepas pin panel\" aria-pressed=\"true\" title=\"Lepas pin panel\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\"><path d=\"M7 3.6h6M7.6 3.6v5.6L4.6 13h10.8l-3-3.8V3.6M10 13v5\"/></svg></button>",
+      "css": ".ds-icon-active{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;padding:6px;border:0;border-radius:8px;background:#202622;color:#A9EEC0;cursor:pointer}.ds-icon-active:hover{background:#202622}.ds-icon-active:focus-visible{outline:1px solid #A9EEC0;outline-offset:-1px}.ds-icon-active:active{background:#202622}"
+    },
+    {
+      "name": "Selected focus duration",
+      "kind": "chip",
+      "refersTo": "duration-selected",
+      "description": "Selected session duration. Native chips are enabled only in ready or complete timer phases; the browser example shows the selected enabled state.",
+      "html": "<button class=\"ds-duration\" aria-pressed=\"true\" title=\"Pilih durasi sesi berikutnya\">25 m</button>",
+      "css": ".ds-duration{padding:8px 14px;border:1px solid transparent;border-radius:8px;background:#202622;color:#A9EEC0;font:300 13px Ubuntu,sans-serif;cursor:pointer}.ds-duration:hover{border-color:#F3F6F4}.ds-duration:focus-visible{outline:1px solid #A9EEC0;outline-offset:1px}.ds-duration:active{background:#202622}.ds-duration:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Focus timer",
+      "kind": "custom",
+      "description": "Centered native Hack timer with proportional supporting caption. This ready-state sample matches the 25-minute preset.",
+      "html": "<div class=\"ds-timer\"><p class=\"ds-timer-caption\">Satu hal. Sepenuh perhatian.</p><div class=\"ds-timer-value\">25:00</div></div>",
+      "css": ".ds-timer{padding:4px 16px;background:#090B0A;text-align:center}.ds-timer-caption{margin:0 0 1px;color:#A9B4AD;font:300 13px Ubuntu,sans-serif}.ds-timer-value{color:#F3F6F4;font:400 57px Hack,monospace}"
+    },
+    {
+      "name": "Metric progress strip",
+      "kind": "custom",
+      "refersTo": "progress-track",
+      "description": "Native metric layout pairs a muted label with a monospace measurement and a 3-point strip. The empty browser preview uses an unavailable marker instead of fabricated telemetry.",
+      "html": "<div class=\"ds-metric\"><div class=\"ds-metric-row\"><span>Prosesor</span><span class=\"ds-metric-value\">—</span></div><div class=\"ds-metric-track\" role=\"img\" aria-label=\"Data belum tersedia\"></div></div>",
+      "css": ".ds-metric{width:100%;max-width:416px;padding:12px 0;background:#090B0A}.ds-metric-row{display:flex;align-items:center;justify-content:space-between;color:#A9B4AD;font:300 13px Ubuntu,sans-serif}.ds-metric-value{color:#F3F6F4;font:400 16px Hack,monospace}.ds-metric-track{height:3px;margin-top:3px;border-radius:2px;background:#202622}"
+    },
+    {
+      "name": "Reduced motion setting",
+      "kind": "input",
+      "description": "Native egui checkbox in the scrollable settings region. This browser translation approximates its rounded control and uses an accessible standard input.",
+      "html": "<label class=\"ds-setting\"><input class=\"ds-setting-input\" type=\"checkbox\"><span>Kurangi animasi</span></label>",
+      "css": ".ds-setting{display:inline-flex;align-items:center;gap:6px;padding:6px 0;background:#090B0A;color:#F3F6F4;font:300 13px Ubuntu,sans-serif;cursor:pointer}.ds-setting-input{appearance:none;width:14px;height:14px;margin:0;border:0;border-radius:8px;background:#202622;cursor:pointer}.ds-setting-input:hover{background:#303A33}.ds-setting-input:focus-visible{outline:1px solid #A9EEC0;outline-offset:2px}.ds-setting-input:checked{background:#202622}.ds-setting-input:checked::after{content:\"\";display:block;width:4px;height:8px;margin:1px 0 0 4px;border:solid #A9EEC0;border-width:0 1.5px 1.5px 0;transform:rotate(40deg)}.ds-setting-input:active{background:#303A33}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Black Notch",
+    "overview": "The user's Mac-notch reference establishes a black silhouette centered at the top of the display. Luma behaves like a small instrument: compact at rest, expanding around the task in use. Mint highlights interaction and state while the surrounding desktop remains visible.\n\nThis document extracts the implemented Rust/egui interface from `src/app.rs` and `src/icons.rs`. Windows is the native target; Linux is a development preview. The reviewed visual evidence is in `docs/screenshots/*.png`, including focus and settings at 100% and 150% scale; it does not establish Windows runtime validation.",
+    "keyCharacteristics": [
+      "A single black silhouette with gently rounded lower corners.",
+      "Sparse mint accents, muted labels, and bright measured values.",
+      "Authored vector icons and a large monospace focus timer.",
+      "Four compact task tabs with Indonesian labels and truthful unavailable states."
+    ],
+    "rules": [
+      {
+        "name": "The Black Silhouette Rule",
+        "body": "Preserve the black body and top-center placement established by the user's reference.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the top-centered black silhouette and the compact/expanded geometry.",
+      "**Do** use mint to identify active controls, progress, and the principal focus action.",
+      "**Do** keep numerical timers and metrics monospace and ordinary labels proportional.",
+      "**Do** retain visible keyboard focus, explanatory tooltips, reduced motion, and truthful unavailable states.",
+      "**Do** check both 100% and 150% scale against the captured Linux preview evidence."
+    ],
+    "donts": [
+      "**Don't** replace the user-pinned black notch with a different visual direction.",
+      "**Don't** claim the embedded fonts are Windows system fonts or that strong text loads a bold face.",
+      "**Don't** introduce emoji icons, fabricated media data, or invented battery values.",
+      "**Don't** treat Linux screenshots as evidence that Windows integrations have been exercised."
+    ]
+  }
+}
