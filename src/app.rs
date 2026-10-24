@@ -2,6 +2,7 @@ use crate::{
     config::{self, Settings},
     focus::{FocusTimer, Phase},
     icons::{self, Icon},
+    motion::Expansion,
     platform::{self, Action, Media, MediaBridge, MediaCommand},
     telemetry::{self, Snapshot},
 };
@@ -51,6 +52,9 @@ pub struct NotchApp {
     media: Media,
     integration: Option<platform::DesktopIntegration>,
     last_geometry: Option<(Vec2, f32, f32, egui::Pos2, f32)>,
+    motion: Expansion,
+    window_region: platform::WindowRegion,
+    fixed_surface: bool,
 }
 
 impl NotchApp {
@@ -119,12 +123,17 @@ impl NotchApp {
             media: Media::default(),
             integration,
             last_geometry: None,
+            motion: Expansion::new(expanded),
+            window_region: Default::default(),
+            fixed_surface: true,
         }
     }
 
     fn open(&mut self, ctx: &egui::Context) {
         self.expanded = true;
         self.hover_opened = false;
+        self.hover_started = None;
+        self.pointer_left = None;
         ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
     }
 
@@ -133,6 +142,7 @@ impl NotchApp {
         self.pinned = false;
         self.suppress_hover = true;
         self.hover_started = None;
+        self.pointer_left = None;
     }
 
     fn persist(&mut self) {
@@ -162,9 +172,11 @@ impl NotchApp {
         )));
     }
 
-    fn compact(&mut self, ui: &mut egui::Ui, width: f32) {
-        let row = Rect::from_min_size(pos2(20.0, 0.0), vec2(width - 40.0, 48.0));
-        icons::logo(ui.painter(), pos2(29.0, 24.0), ACCENT);
+    fn compact(&mut self, ui: &mut egui::Ui, shape: Rect) {
+        let origin = shape.min;
+        let width = shape.width();
+        let row = Rect::from_min_size(origin + vec2(20.0, 0.0), vec2(width - 40.0, 48.0));
+        icons::logo(ui.painter(), origin + vec2(29.0, 24.0), ACCENT);
         let timer_active = self.timer.phase == Phase::Running || self.timer.phase == Phase::Paused;
         let label = if timer_active {
             format!("Fokus  {}", self.timer.label())
@@ -173,7 +185,8 @@ impl NotchApp {
         } else {
             format!("Luma   {}", chrono::Local::now().format("%H:%M"))
         };
-        let text_rect = Rect::from_min_max(pos2(52.0, 12.0), pos2(width - 72.0, 37.0));
+        let text_rect =
+            Rect::from_min_max(origin + vec2(52.0, 12.0), origin + vec2(width - 72.0, 37.0));
         let galley =
             ui.painter()
                 .layout(label, FontId::proportional(13.0), TEXT, text_rect.width());
@@ -187,14 +200,14 @@ impl NotchApp {
             .map(|b| format!("{}%", b.percent))
             .unwrap_or_else(|| "•••".into());
         ui.painter().text(
-            pos2(row.right() - 4.0, 24.0),
+            pos2(row.right() - 4.0, origin.y + 24.0),
             Align2::RIGHT_CENTER,
             trailing,
             FontId::proportional(11.0),
             MUTED,
         );
         let response = ui.interact(
-            Rect::from_min_size(egui::Pos2::ZERO, vec2(width, 48.0)),
+            Rect::from_min_size(origin, vec2(width, 48.0)),
             Id::new("compact"),
             Sense::click(),
         );
@@ -606,7 +619,11 @@ impl NotchApp {
                         .color(MUTED),
                 );
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("Luma Notch 0.1.0").size(11.0).color(MUTED));
+                    ui.label(
+                        RichText::new(concat!("Luma Notch ", env!("CARGO_PKG_VERSION")))
+                            .size(11.0)
+                            .color(MUTED),
+                    );
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.small_button("Keluar dari Luma").clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
@@ -628,7 +645,7 @@ impl eframe::App for NotchApp {
         [0.0; 4]
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_tick);
         self.last_tick = now;
@@ -676,47 +693,81 @@ impl eframe::App for NotchApp {
         {
             self.open(ctx);
         }
+        let previous_size = COMPACT + (EXPANDED - COMPACT) * self.motion.value();
+        let previous_shape = Rect::from_min_size(
+            pos2((ctx.screen_rect().width() - previous_size.x) * 0.5, 0.0),
+            previous_size,
+        );
         let pointer_inside = ctx.input(|i| {
             i.pointer
                 .hover_pos()
-                .is_some_and(|p| i.screen_rect().contains(p))
+                .is_some_and(|p| previous_shape.contains(p))
         });
         if pointer_inside {
             self.pointer_left = None;
+            if self.expanded {
+                self.hover_started = None;
+            }
             if !self.expanded && self.settings.expand_on_hover && !self.suppress_hover {
                 let since = self.hover_started.get_or_insert(now);
                 if now.duration_since(*since) >= Duration::from_millis(240) {
                     self.expanded = true;
                     self.hover_opened = true;
+                    self.hover_started = None;
                 }
             }
         } else {
             self.hover_started = None;
             self.suppress_hover = false;
+            if !self.expanded || !self.hover_opened || self.pinned {
+                self.pointer_left = None;
+            }
             if self.expanded && self.hover_opened && !self.pinned {
                 let since = self.pointer_left.get_or_insert(now);
                 if now.duration_since(*since) >= Duration::from_millis(650) {
                     self.expanded = false;
+                    self.pointer_left = None;
                 }
             }
         }
-        let t = if self.settings.reduced_motion {
-            if self.expanded {
-                1.0
-            } else {
-                0.0
-            }
+        self.motion
+            .advance(self.expanded, elapsed, self.settings.reduced_motion);
+        let ppp = ctx.pixels_per_point();
+        let size = COMPACT + (EXPANDED - COMPACT) * self.motion.value();
+        // Windows keeps one fixed backing surface and clips its native input area.
+        // Linux uses the same canvas for visual previews; native input clipping is Windows-only.
+        let canvas = if self.fixed_surface || self.expanded || self.motion.is_active() {
+            EXPANDED
         } else {
-            ctx.animate_bool_with_time(Id::new("expansion"), self.expanded, 0.24)
+            COMPACT
         };
-        let eased = 1.0 - (1.0 - t).powi(3);
-        let size = COMPACT + (EXPANDED - COMPACT) * eased;
-        let size = vec2(size.x.round(), size.y.round());
-        self.geometry(ctx, size);
+        self.geometry(ctx, canvas);
+        let canvas_width = ctx.screen_rect().width();
+        let left = (((canvas_width - size.x) * 0.5) * ppp).round() / ppp;
+        let shape = Rect::from_min_max(
+            pos2(left, 0.0),
+            pos2(
+                ((left + size.x) * ppp).round() / ppp,
+                (size.y * ppp).round() / ppp,
+            ),
+        );
+        if self.fixed_surface {
+            if let Err(error) = self.window_region.set(frame, shape, ppp) {
+                self.fixed_surface = false;
+                self.error = Some(error);
+            }
+        }
+        let compact_alpha = self.motion.compact_opacity();
+        let content_alpha = self.motion.content_opacity();
+        let widget_duration = if self.settings.reduced_motion {
+            0.0
+        } else {
+            0.2
+        };
+        ctx.style_mut(|style| style.animation_time = widget_duration);
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
             .show(ctx, |ui| {
-                let shape = Rect::from_min_size(egui::Pos2::ZERO, size);
                 let radius = CornerRadius {
                     nw: if self.settings.top_offset > 0.0 {
                         16
@@ -732,15 +783,32 @@ impl eframe::App for NotchApp {
                     se: 24,
                 };
                 ui.painter().rect_filled(shape, radius, BG);
-                if t < 0.98 {
-                    self.compact(ui, size.x);
-                } else {
-                    let content = shape.shrink2(vec2(24.0, 18.0));
+                if compact_alpha > 0.001 {
+                    let mut compact = ui.new_child(
+                        egui::UiBuilder::new()
+                            .id_salt("compact-layer")
+                            .max_rect(shape),
+                    );
+                    compact.set_opacity(compact_alpha);
+                    self.compact(&mut compact, shape);
+                }
+                if content_alpha > 0.001 {
+                    // Lay out at the final width throughout the reveal: text never
+                    // rewraps as the silhouette grows, and the mask does the reveal.
+                    let expanded_left = (canvas_width - EXPANDED.x) * 0.5;
+                    let content = Rect::from_min_size(
+                        pos2(expanded_left, (1.0 - content_alpha) * 6.0),
+                        EXPANDED,
+                    )
+                    .shrink2(vec2(24.0, 18.0));
                     let mut child = ui.new_child(
                         egui::UiBuilder::new()
+                            .id_salt("expanded-layer")
                             .max_rect(content)
                             .layout(Layout::top_down(Align::Min)),
                     );
+                    child.set_clip_rect(shape.shrink2(vec2(12.0, 3.0)).intersect(ui.clip_rect()));
+                    child.set_opacity(content_alpha);
                     self.expanded_ui(&mut child);
                     let footer = if self.error.is_some() {
                         "Perlu perhatian · lihat Atur".to_owned()
@@ -749,27 +817,43 @@ impl eframe::App for NotchApp {
                     } else {
                         "Sedikit ruang. Lebih banyak fokus.".into()
                     };
-                    ui.painter().text(
-                        pos2(24.0, size.y - 18.0),
+                    child.painter().text(
+                        pos2(content.left(), content.bottom()),
                         Align2::LEFT_CENTER,
                         footer,
                         FontId::proportional(10.0),
                         if self.error.is_some() { ERROR } else { MUTED },
                     );
-                    ui.painter()
-                        .circle_filled(pos2(size.x - 26.0, size.y - 18.0), 2.5, ACCENT);
+                    child.painter().circle_filled(
+                        pos2(content.right() - 2.0, content.bottom()),
+                        2.5,
+                        ACCENT,
+                    );
                 }
             });
-        ctx.request_repaint_after(Duration::from_millis(
-            if self.timer.phase == Phase::Running
-                || self.hover_started.is_some()
-                || self.pointer_left.is_some()
-            {
-                80
-            } else {
-                250
-            },
-        ));
+        self.motion.retarget(self.expanded);
+        if !self.expanded && self.motion.is_active() {
+            ctx.memory_mut(|memory| {
+                if let Some(focused) = memory.focused() {
+                    memory.surrender_focus(focused);
+                }
+            });
+        }
+        if self.motion.is_active() {
+            ctx.request_repaint();
+        } else {
+            ctx.request_repaint_after(Duration::from_millis(250));
+        }
+        if let Some(started) = self.hover_started {
+            ctx.request_repaint_after(
+                Duration::from_millis(240).saturating_sub(now.duration_since(started)),
+            );
+        }
+        if let Some(left) = self.pointer_left {
+            ctx.request_repaint_after(
+                Duration::from_millis(650).saturating_sub(now.duration_since(left)),
+            );
+        }
     }
 }
 

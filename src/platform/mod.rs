@@ -92,3 +92,19 @@ pub fn monitor_geometry(_index: usize, _ppp: f32) -> Option<(eframe::egui::Pos2,
 pub fn monitor_count() -> usize {
     1
 }
+
+#[cfg(not(windows))]
+#[derive(Default)]
+pub struct WindowRegion;
+
+#[cfg(not(windows))]
+impl WindowRegion {
+    pub fn set(
+        &mut self,
+        _frame: &eframe::Frame,
+        _rect: eframe::egui::Rect,
+        _ppp: f32,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+}

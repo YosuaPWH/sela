@@ -148,7 +148,7 @@ The expanded body has horizontal and vertical content insets, a header, a four-t
 
 ## Elevation & Depth
 
-The main notch is a flat opaque surface over a transparent native window. No custom shadow or blur is painted behind it. Raised charcoal and spacing distinguish interactive regions. Native egui popups and tooltips retain their framework defaults; they are not a separately authored elevation system.
+The main notch is a flat opaque surface over a transparent native window. The backing viewport stays at the expanded dimensions during normal operation so the OS does not resize and recenter it on every animation frame. Windows clips its drawing and input region to the animated bounds; the Linux development preview retains the full input canvas. No custom shadow or blur is painted behind it. Raised charcoal and spacing distinguish interactive regions. Native egui popups and tooltips retain their framework defaults; they are not a separately authored elevation system.
 
 ## Shapes
 
@@ -160,7 +160,7 @@ Icons are authored vector geometry with a consistent line stroke (1.65 logical p
 
 ### Notch shell
 
-Compact mode shows the logo, current focus timer or media title, and battery information when available. Clicking opens the expanded panel. Expansion uses a 240 ms animation value with an additional cubic ease-out mapping; reduced motion snaps to the destination. Hover opening waits 240 ms, and a hover-opened panel closes 650 ms after the pointer leaves unless pinned.
+Compact mode shows the logo, current focus timer or media title, and battery information when available. Clicking opens the expanded panel. Expansion uses an analytically integrated, critically damped spring (opening response 32/s; closing response 38/s). Position and velocity survive interruption; closing settles faster than opening, without an elastic bounce. Compact content fades out over progress 0.02–0.30 and expanded content fades in over 0.20–0.92, using smoothstep. The expanded layout retains its final width, is masked by the growing silhouette, and settles through a 6-point vertical reveal. Reduced motion snaps geometry and content to their destinations and disables egui widget interpolation. Hover opening waits 240 ms, and a hover-opened panel closes 650 ms after the pointer leaves unless pinned.
 
 ### Navigation
 

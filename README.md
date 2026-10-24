@@ -2,16 +2,16 @@
 
 Notch terinspirasi Mac untuk Windows, ditulis dengan Rust. Overlay hitam di tengah atas layar membuka akses ke musik, timer fokus, dan status perangkat, tanpa akun atau WebView.
 
-![Panel fokus Luma Notch](docs/screenshots/focus-running.png)
+![Animasi Luma Notch](docs/animation.gif)
 
-Pratinjau UI di Linux pada skala 100%; integrasi OS Windows tidak berjalan pada gambar ini.
+Rekaman UI native di Linux pada skala 100%, termasuk membalik arah saat transisi. Integrasi OS Windows tidak berjalan pada pratinjau ini.
 
 ## Fitur
 
 - **Media:** judul, artis, posisi, dan kontrol play/pause, sebelumnya, berikutnya melalui Windows System Media Transport Controls. Mendukung aplikasi yang menyediakan sesi media, seperti Spotify dan browser tertentu. Kontrol mengikuti kemampuan pemutar.
 - **Fokus:** pilihan 15, 25, atau 50 menit, jeda, lanjutkan, reset, dan bunyi Windows saat selesai. Sesi tetap berjalan saat panel ditutup; keluar aplikasi membatalkan sesi. Jumlah sesi dihitung sejak aplikasi dibuka.
 - **Sistem:** pemakaian CPU dan RAM diperbarui setiap 2 detik; baterai dan koneksi listrik ditampilkan jika perangkat menyediakannya.
-- **Overlay:** selalu di atas, tanpa bingkai/taskbar, sudut transparan, buka saat hover atau klik, pin panel, dan animasi yang dapat dikurangi.
+- **Overlay:** selalu di atas, tanpa bingkai/taskbar, sudut transparan, buka saat hover atau klik, pin panel, dan animasi spring yang menyambung saat arah dibalik. Isi panel masuk lewat fade dan mask tanpa perubahan lebar layout; mode kurangi animasi tersedia.
 - **Pengaturan:** jarak dari tepi atas, monitor, hover, animasi, dan bunyi disimpan secara lokal.
 - **Windows:** ikon tray dengan menu keluar, shortcut global `Ctrl+Alt+N`, serta satu instance per sesi pengguna.
 
@@ -61,6 +61,7 @@ Pengaturan disimpan melalui direktori konfigurasi pengguna Windows, umumnya `%AP
 ```text
 src/app.rs               UI notch, animasi, dan interaksi
 src/focus.rs             state machine timer, diuji tanpa sleep
+src/motion.rs            spring analitik dan fade, independen refresh rate
 src/config.rs            konfigurasi JSON dan validasi
 src/telemetry.rs         worker CPU/RAM/baterai
 src/platform/windows.rs  WinRT media, tray, shortcut, monitor, mutex

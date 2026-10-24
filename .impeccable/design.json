@@ -136,13 +136,13 @@
     "motion": [
       {
         "name": "notch-expansion",
-        "value": "240ms; ctx.animate_bool_with_time, then 1 - (1 - t)^3",
-        "purpose": "Interpolate compact and expanded native geometry; compact content remains until the animation value reaches 0.98."
+        "value": "Critical damping; opening omega 32/s, closing omega 38/s; analytic elapsed-time integration",
+        "purpose": "Preserve position and velocity during reversals. Keep the native canvas fixed; animate a pixel-aligned, clipped silhouette instead of resizing the HWND every frame."
       },
       {
         "name": "widget-animation",
         "value": "200ms",
-        "purpose": "egui style animation_time; native default widget interpolation."
+        "purpose": "egui widget interpolation; 0ms when reduced motion is enabled."
       },
       {
         "name": "hover-open-delay",
@@ -157,7 +157,12 @@
       {
         "name": "reduced-motion",
         "value": "0ms",
-        "purpose": "Snap notch geometry to the compact or expanded destination when reduced motion is enabled."
+        "purpose": "Snap geometry, opacity and reveal offset to their destination; disable egui widget interpolation."
+      },
+      {
+        "name": "notch-content-reveal",
+        "value": "smoothstep; compact progress 0.02–0.30, expanded 0.20–0.92; vertical offset 6px → 0px",
+        "purpose": "Crossfade between stable-width compact and expanded content under the silhouette mask, without reflow or a late content swap."
       }
     ],
     "breakpoints": []

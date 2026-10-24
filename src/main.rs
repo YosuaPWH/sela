@@ -24,6 +24,7 @@ fn main() -> eframe::Result {
             .with_resizable(false),
         centered: true,
         renderer: eframe::Renderer::Glow,
+        vsync: true,
         ..Default::default()
     };
     eframe::run_native(

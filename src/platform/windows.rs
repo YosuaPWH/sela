@@ -3,6 +3,7 @@ use global_hotkey::{
     hotkey::{Code, HotKey, Modifiers},
     GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState,
 };
+use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use std::{sync::mpsc, thread, time::Duration};
 use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem},
@@ -16,8 +17,13 @@ use windows::{
         GlobalSystemMediaTransportControlsSessionPlaybackStatus,
     },
     Win32::{
-        Foundation::{CloseHandle, GetLastError, BOOL, ERROR_ALREADY_EXISTS, HANDLE, LPARAM, RECT},
-        Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO},
+        Foundation::{
+            CloseHandle, GetLastError, BOOL, ERROR_ALREADY_EXISTS, HANDLE, HWND, LPARAM, RECT,
+        },
+        Graphics::Gdi::{
+            CreateRectRgn, DeleteObject, EnumDisplayMonitors, GetMonitorInfoW, SetWindowRgn, HDC,
+            HMONITOR, MONITORINFO,
+        },
         System::{
             Diagnostics::Debug::MessageBeep,
             Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS},
@@ -27,6 +33,52 @@ use windows::{
         UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK, MONITORINFOF_PRIMARY},
     },
 };
+
+/// Keep the backing window fixed; let Windows clip drawing and mouse input to
+/// the animated silhouette's bounds instead of resizing/recentering the HWND.
+#[derive(Default)]
+pub struct WindowRegion {
+    last: Option<[i32; 4]>,
+}
+
+impl WindowRegion {
+    pub fn set(
+        &mut self,
+        frame: &eframe::Frame,
+        rect: eframe::egui::Rect,
+        ppp: f32,
+    ) -> Result<(), String> {
+        let bounds = [
+            (rect.left() * ppp).floor() as i32,
+            (rect.top() * ppp).floor() as i32,
+            (rect.right() * ppp).ceil() as i32,
+            (rect.bottom() * ppp).ceil() as i32,
+        ];
+        if self.last == Some(bounds) {
+            return Ok(());
+        }
+        let handle = frame.window_handle().map_err(|e| e.to_string())?;
+        let RawWindowHandle::Win32(handle) = handle.as_raw() else {
+            return Err("Handle window Windows tidak tersedia".into());
+        };
+        let hwnd = HWND(handle.hwnd.get() as *mut _);
+        unsafe {
+            let region = CreateRectRgn(bounds[0], bounds[1], bounds[2], bounds[3]);
+            if region.0.is_null() {
+                let _ = SetWindowRgn(hwnd, None, false);
+                return Err("Tidak dapat membuat area notch".into());
+            }
+            // On success Windows owns the HRGN; deleting it would corrupt the window.
+            if SetWindowRgn(hwnd, region, false) == 0 {
+                let _ = DeleteObject(region);
+                let _ = SetWindowRgn(hwnd, None, false);
+                return Err("Tidak dapat mengatur area notch. Mode kompatibilitas dipakai.".into());
+            }
+        }
+        self.last = Some(bounds);
+        Ok(())
+    }
+}
 
 fn monitors() -> Vec<MONITORINFO> {
     unsafe extern "system" fn collect(
