@@ -1,6 +1,6 @@
-# Validasi
+# Validasi Sela 0.2.0
 
-Dijalankan pada 24 Oktober 2026 di Linux x64 dengan Rust 1.99.1. Build Windows menggunakan target `x86_64-pc-windows-gnu` dan GCC MinGW 14-posix. CI Windows MSVC disiapkan, belum dijalankan dari lingkungan ini.
+Dijalankan pada 24 Oktober 2026 di Linux x64, Rust 1.99.1. Cross-build Windows memakai `x86_64-pc-windows-gnu` dan MinGW GCC 14-posix. CI Windows MSVC tersedia, belum dijalankan dari lingkungan ini.
 
 ## Pemeriksaan otomatis
 
@@ -9,63 +9,47 @@ Dijalankan pada 24 Oktober 2026 di Linux x64 dengan Rust 1.99.1. Build Windows m
 | `cargo fmt --all -- --check` | Lulus |
 | `cargo clippy --locked --all-targets -- -D warnings` | Lulus |
 | `cargo clippy --locked --target x86_64-pc-windows-gnu --all-targets -- -D warnings` | Lulus |
-| `cargo test --locked --all-targets` | 12 tes lulus |
-| `cargo build --locked --release --target x86_64-pc-windows-gnu` | Lulus; executable PE32+ x64, subsystem Windows GUI |
+| `cargo test --locked --all-targets` | 22 tes lulus |
+| `cargo build --locked --release --target x86_64-pc-windows-gnu` | Lulus; PE32+ x64, subsystem Windows GUI |
 
-Tes mencakup jeda/lanjut timer, penyelesaian tepat satu kali setelah durasi terlampaui, reset sesi aktif, default kompatibel pengaturan lama, pembatasan nilai, penanganan JSON rusak tanpa menimpa file, serta penyimpanan dan penggantian pengaturan.
+Tes mencakup timer, konfigurasi lama/rusak, parser LRC dengan timestamp berulang dan offset, indeks lirik saat seek mundur, pemisahan plain/synced, pencocokan artis/durasi, pengabaian hasil usang, pembatalan sebelum jaringan, cache korup/kedaluwarsa/salah track, URL encoding, serta fallback HTTP 404→search. Provider dites melalui server HTTP lokal.
 
-Executable diperiksa dengan `objdump -p`: hanya mengimpor DLL sistem Windows, tanpa kebutuhan DLL MinGW terpisah. Ini pemeriksaan statis, bukan bukti runtime Windows.
+Posisi media diuji tetap ketika dijeda, maju dengan waktu monotonik, menerima seek mundur, membatasi durasi, dan menangani nilai tidak valid. Spring diuji pada simulasi 30/60/144 Hz serta retarget dan mode kurangi animasi. Ini pengujian matematika gerak, bukan benchmark FPS Windows.
 
-## Pemeriksaan referensi dan navigasi 0.1.2
+## Koneksi nyata
 
-- Referensi Poni ditelaah pada commit d24628468173a0d7ead8d6f7f56a81f00bab3371; sumber dan penerapannya dicatat di REFERENCE_PONI.md.
-- Tiga tes wheel memeriksa akumulasi gerakan kecil, batas satu langkah dalam burst, dan pergantian arah. Tes worker memeriksa baseline/hasil aktif dan tidak adanya pembacaan CPU/RAM setelah halaman dijeda.
-- Uji UI Linux memeriksa scroll header ke depan/belakang dan wrap, cooldown burst, serta scroll isi halaman yang tetap pada halaman tersebut.
-- State Sistem saat menyiapkan baseline dan sesudah data tersedia dicapture. CPU/RAM dipanggil hanya saat halaman Sistem terbuka; pemeriksaan baterai ringkas tetap berjalan setiap 30 detik.
-- Timer, klik tab, shortcut lokal, dan keluar aplikasi dicoba ulang. Tampilan Sistem juga dicapture pada 150%.
-- README dirender lokal dengan parser Markdown dan stylesheet GitHub, diperiksa pada lebar 1040 dan 420 piksel: tidak ada overflow halaman, aset rusak, atau anchor navigasi yang hilang. Tampilan ini pratinjau lokal, bukan bukti halaman telah diterbitkan di GitHub.
-- Pembacaan berdasarkan kebutuhan mengurangi kerja CPU/RAM saat tertutup; belum ada benchmark CPU idle atau FPS Windows.
+`cargo run --locked --example lyrics_probe -- "Never Gonna Give You Up" "Rick Astley" 213` berhasil mengakses LRCLIB lewat HTTPS dan menerima satu baris tersinkron pada data sumber saat pengujian. Jumlah/isi respons berasal dari provider dan dapat berubah. Isi lirik komersial tidak dimasukkan ke galeri atau paket distribusi. Pengujian ini membuktikan jalur HTTPS dari Linux, bukan kualitas katalog LRCLIB atau konektivitas Windows.
 
-## Pemeriksaan animasi 0.1.1
+## Pratinjau native
 
-- Spring memakai solusi analitik terhadap durasi frame; lintasan diuji sama pada simulasi 30/60/144 Hz. Ini bukan pengukuran FPS pada perangkat Windows.
-- Retarget di tengah gerakan menjaga posisi/kecepatan dan tetap dalam batas 0–1; idle panjang tidak melewatkan pembukaan; mode kurangi animasi menghentikan gerakan dan menyetel opacity akhir.
-- Window Windows tetap 464×370 logical points; `SetWindowRgn` mengikuti batas notch untuk menghindari resize/recenter HWND tiap frame dan membatasi area input. Pengaturan region hanya diperbarui saat batas fisik berubah; kegagalan memakai mode kompatibilitas.
-- Isi panel memakai layout lebar tetap, fade, dan clipping; pembaruan frame diminta terus hanya selama spring aktif. Timer hover dijadwalkan ke deadline dan dibersihkan setelah transisi.
-- Pratinjau Linux dengan xcompmgr menangkap 58 tinggi antara posisi ringkas dan terbuka. Pusat siluet bergeser paling banyak 1 physical pixel dalam capture uji.
-- `docs/animation.gif` berasal dari rekaman langsung X11, termasuk pembalikan arah. Encoding 60 fps adalah konfigurasi video, bukan jaminan frame rate aplikasi.
-- Mode kurangi animasi, buka/tutup dengan keyboard dan hover, empat tab, kontrol timer, dan keluar aplikasi dicoba kembali. `Esc` lalu `Space` saat transisi tidak menjeda timer yang aktif; `Tab`/`Space` dari mode ringkas tetap membuka panel.
+Aplikasi Rust eframe dijalankan di Xvfb 1440×900 dengan OpenGL software dan compositor xcompmgr. Capture Sela memakai skala 100% dan 150%; track demo diberi label dan memakai lirik orisinal tanpa audio/jaringan.
 
-## Pratinjau interaktif Linux
+- Panel Media dan notch ringkas dicapture pada 100%/150%: 600×370 dan 580×54 logical points.
+- Lirik ringkas saat jeda menghasilkan framebuffer yang sama selama dua detik.
+- Track demo mencakup lirik tersinkron, judul/baris panjang dengan elipsis, lirik kosong, plain text, dan instrumental.
+- Sakelar lirik memakai pill pendek 324×48; kurangi animasi menampilkan geometri akhir. Pengaturan tersimpan dan dibaca kembali saat restart.
+- Fokus, Sistem, Atur, dan keadaan media kosong dicapture; CPU/RAM adalah data mesin pengembangan.
+- Lebar dan tinggi memakai spring terpisah; permukaan native tetap 600×370 dan isi panel dilayout pada lebar akhir. Pijar di-decode dari 30% kiri lembar aset agar tidak melampaui batas minimum tekstur GL 2.0.
 
-Aplikasi native eframe dijalankan dengan renderer OpenGL perangkat lunak di Xvfb 1440×900; capture 0.1.1 dan 0.1.2 memakai compositor xcompmgr. Capture berasal dari framebuffer aplikasi yang berjalan, bukan mockup. `WINIT_X11_SCALE_FACTOR=1.5` dipakai untuk capture 150%.
+Galeri terkini berada di `screenshots/sela-*`. Screenshot merupakan bukti UI Linux. Media WinRT, tray, global hotkey, mutex, baterai Windows, dan area input native tidak aktif pada Linux.
 
-- Empat tab, timer berjalan, state jeda, dan reset dicoba.
-- Digit timer tetap sama selama jeda; keluar aplikasi lewat Atur berhasil.
-- `Esc` menyusutkan siluet notch ke 324×48; backing window tetap 464×370 pada jalur normal.
-- Klik mempertahankan panel 464×370 setelah kursor keluar.
-- Hover membuka panel; keluar kursor menutup panel setelah penundaan.
-- Perubahan pengaturan tersimpan pada folder konfigurasi sementara yang terisolasi.
-- Tampilan 100% dan 150% diperiksa tanpa clipping pada state yang dicapture.
-- Review terpisah versi 0.1.0 memberi disposition **ship** pada ruang lingkup pratinjau UI Linux dan kode yang diperiksa. Perubahan gerak 0.1.1 diperiksa melalui capture dan uji interaksi di atas; integrasi Windows tetap di luar verifikasi runtime.
+AccessKit diaktifkan dalam build agar nama dan peran widget diekspor ke aksesibilitas native. Baris lirik memakai galley satu baris pada tepi kiri yang tetap, dengan teks lengkap di tooltip dan informasi semantik.
 
-Capture di `screenshots/`: `media.png`, `focus.png`, `focus-running.png`, `focus-paused.png`, `system.png`, `system-loading.png`, `system-150.png`, `settings.png`, `compact.png`, `focus-150.png`, `settings-150.png`. Nilai sistem adalah data langsung mesin pengembangan; media kosong karena integrasi Windows tidak aktif pada Linux.
+## Pemeriksaan akhir
+
+Review terpisah menemukan alignment lirik dan fitur ekspor aksesibilitas yang belum aktif. Kedua perbaikan dinilai **resolved**, dengan disposition **ship** pada cakupan implementasi/pratinjau native yang diperiksa. Verdict terakhir hanya memeriksa dua koreksi itu, bukan sertifikasi integrasi Windows. Capture tersinkron, teks panjang, dan fallback diperbarui pada 100%/150%; `cargo tree` mengonfirmasi AccessKit dan executable mengimpor `uiautomationcore.dll`. Pemeriksaan statis import DLL menunjukkan hanya DLL sistem Windows, tanpa DLL MinGW terpisah.
 
 ## Checklist runtime Windows yang belum dijalankan
 
-Jalankan pada perangkat Windows 10 1809+ atau Windows 11 dengan driver OpenGL yang mendukung:
+- [ ] Posisi atas-tengah, transparansi, tray Pijar, dan tidak adanya tombol taskbar.
+- [ ] Windows Narrator membaca tab, tombol transport, judul, dan lirik dengan benar.
+- [ ] `Ctrl+Alt+N`, semua tindakan tray, keluar aplikasi, dan pencegahan instance ganda (termasuk Luma lama).
+- [ ] Metadata/transport Spotify dan browser sesuai kemampuan sesi Windows; pergantian pemutar atau lagu tidak mempertahankan lirik lama.
+- [ ] Lirik mengikuti pause, resume, seek maju/mundur, akhir lagu, dan sleep/resume pada sesi media nyata.
+- [ ] HTTPS LRCLIB, cache offline, koneksi gagal, retry, dan penonaktifan lirik berfungsi pada Windows.
+- [ ] Area di luar region meneruskan klik, termasuk saat perubahan lebar, pembalikan animasi, dan perubahan DPI.
+- [ ] Performa animasi pada 60/120/144 Hz; belum ada benchmark FPS atau idle CPU.
+- [ ] Timer selesai/bunyi, baterai, pengaturan lama, dan penyimpanan setelah restart.
+- [ ] DPI 100/125/150/200%, monitor kedua/koordinat negatif, pencabutan monitor, fullscreen, dan remote desktop.
 
-- [ ] Notch berada di tengah atas layar, sudut transparan, dan tidak muncul di taskbar.
-- [ ] Animasi tetap mulus di perangkat Windows; area transparan di luar notch meneruskan klik ke aplikasi di bawahnya, termasuk saat transisi dan perubahan DPI.
-- [ ] Ikon tray membuka menu; semua tindakan termasuk keluar berfungsi.
-- [ ] `Ctrl+Alt+N` bekerja dari aplikasi lain; konflik shortcut memberi pesan di Atur.
-- [ ] Instance kedua tidak membuat overlay tambahan.
-- [ ] Spotify/pemutar lain menampilkan metadata aktual; play/pause dan skip bekerja sesuai kemampuan pemutar.
-- [ ] Media berganti sesi dengan benar saat pemutar ditutup; kegagalan akses menyediakan Coba lagi.
-- [ ] Timer selesai, membuka tab Fokus dan berbunyi sesuai pengaturan.
-- [ ] Baterai cocok dengan status perangkat; desktop tanpa baterai menampilkan Tidak tersedia.
-- [ ] Monitor kedua, DPI 100/125/150/200%, koordinat monitor negatif, serta pencabutan monitor tetap menempatkan window dalam layar.
-- [ ] Pengaturan tetap tersimpan setelah restart.
-- [ ] Fullscreen, remote desktop, dan sleep/resume diperiksa sesuai lingkungan penggunaan.
-
-Checklist ini mencatat pekerjaan verifikasi perangkat yang belum tersedia; tidak menyatakan integrasi Windows sudah diuji langsung.
+Catatan historis 0.1.x berada di [arsip validasi Luma](archive/VALIDATION-0.1.2.md). GIF lama dan gambar tanpa prefiks `sela-` adalah bukti versi tersebut, bukan tampilan Sela 0.2.0.

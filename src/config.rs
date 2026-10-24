@@ -10,6 +10,8 @@ pub struct Settings {
     pub focus_minutes: u32,
     pub top_offset: f32,
     pub monitor: usize,
+    pub lyrics_enabled: bool,
+    pub show_mascot: bool,
 }
 
 impl Default for Settings {
@@ -21,6 +23,8 @@ impl Default for Settings {
             focus_minutes: 25,
             top_offset: 0.0,
             monitor: 0,
+            lyrics_enabled: true,
+            show_mascot: true,
         }
     }
 }
@@ -60,9 +64,17 @@ impl Settings {
 }
 
 pub fn settings_path() -> Result<PathBuf, String> {
-    directories::ProjectDirs::from("dev", "Luma", "LumaNotch")
+    directories::ProjectDirs::from("dev", "Sela", "Sela")
         .map(|p| p.config_dir().join("settings.json"))
         .ok_or_else(|| "Folder pengaturan pengguna tidak tersedia".into())
+}
+
+pub fn legacy_settings_path() -> Option<PathBuf> {
+    directories::ProjectDirs::from("dev", "Luma", "LumaNotch")
+        .map(|p| p.config_dir().join("settings.json"))
+}
+pub fn lyrics_cache_path() -> Option<PathBuf> {
+    directories::ProjectDirs::from("dev", "Sela", "Sela").map(|p| p.cache_dir().join("lyrics"))
 }
 
 #[cfg(test)]
@@ -77,6 +89,7 @@ mod tests {
         assert_eq!(s.focus_minutes, 1);
         assert_eq!(s.top_offset, 80.0);
         assert!(s.expand_on_hover);
+        assert!(s.lyrics_enabled && s.show_mascot);
     }
 
     #[test]

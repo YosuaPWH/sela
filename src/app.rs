@@ -2,7 +2,8 @@ use crate::{
     config::{self, Settings},
     focus::{FocusTimer, Phase},
     icons::{self, Icon},
-    motion::Expansion,
+    lyrics::{self, Data as LyricData, State as LyricState},
+    motion::{Dimension, Expansion},
     navigation::HeaderWheel,
     platform::{self, Action, Media, MediaBridge, MediaCommand},
     telemetry::{self, Snapshot},
@@ -16,14 +17,17 @@ use std::{
     time::{Duration, Instant},
 };
 
-const BG: Color32 = Color32::from_rgb(9, 11, 10);
-const SURFACE: Color32 = Color32::from_rgb(32, 38, 34);
-const TEXT: Color32 = Color32::from_rgb(243, 246, 244);
-const MUTED: Color32 = Color32::from_rgb(169, 180, 173);
-const ACCENT: Color32 = Color32::from_rgb(169, 238, 192);
+const BG: Color32 = Color32::from_rgb(14, 17, 16);
+const SURFACE: Color32 = Color32::from_rgb(36, 43, 39);
+const TEXT: Color32 = Color32::from_rgb(243, 242, 236);
+const MUTED: Color32 = Color32::from_rgb(166, 178, 165);
+const ACCENT: Color32 = Color32::from_rgb(184, 216, 186);
+const AMBER: Color32 = Color32::from_rgb(242, 200, 121);
 const ERROR: Color32 = Color32::from_rgb(255, 180, 171);
 const COMPACT: Vec2 = vec2(324.0, 48.0);
 const EXPANDED: Vec2 = vec2(464.0, 370.0);
+const MUSIC_COMPACT: Vec2 = vec2(580.0, 54.0);
+const CANVAS: Vec2 = vec2(600.0, 370.0);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -62,12 +66,57 @@ pub struct NotchApp {
     integration: Option<platform::DesktopIntegration>,
     last_geometry: Option<(Vec2, f32, f32, egui::Pos2, f32)>,
     motion: Expansion,
+    width: Dimension,
+    height: Dimension,
+    mascot: Option<egui::TextureHandle>,
+    lyrics_worker: lyrics::Worker,
+    lyrics: lyrics::Selection,
+    active_line: String,
+    line_changed: Instant,
+    demo: bool,
+    demo_track: usize,
     window_region: platform::WindowRegion,
     fixed_surface: bool,
 }
 
 impl NotchApp {
-    pub fn new(cc: &eframe::CreationContext<'_>, expanded: bool) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, expanded: bool, demo: bool) -> Self {
+        let mut fonts = egui::FontDefinitions::default();
+        fonts.font_data.insert(
+            "dm-sans".into(),
+            egui::FontData::from_static(include_bytes!("../assets/dm-sans-400.ttf")).into(),
+        );
+        fonts.font_data.insert(
+            "dm-semibold".into(),
+            egui::FontData::from_static(include_bytes!("../assets/dm-sans-600.ttf")).into(),
+        );
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .insert(0, "dm-sans".into());
+        fonts.families.insert(
+            egui::FontFamily::Name("semibold".into()),
+            vec!["dm-semibold".into(), "dm-sans".into()],
+        );
+        cc.egui_ctx.set_fonts(fonts);
+        let mascot = image::load_from_memory(include_bytes!("../assets/pijar-sheet.png"))
+            .ok()
+            .map(|image| {
+                // Upload only Pijar; the reference sheet also contains archived concepts.
+                // Its original width exceeds the GL 2.0 minimum texture limit (2048).
+                let rgba = image
+                    .crop_imm(0, 0, (image.width() as f32 * 0.30) as u32, image.height())
+                    .to_rgba8();
+                cc.egui_ctx.load_texture(
+                    "Pijar",
+                    egui::ColorImage::from_rgba_unmultiplied(
+                        [rgba.width() as usize, rgba.height() as usize],
+                        rgba.as_raw(),
+                    ),
+                    egui::TextureOptions::LINEAR,
+                )
+            });
         let mut visuals = egui::Visuals::dark();
         visuals.panel_fill = Color32::TRANSPARENT;
         visuals.override_text_color = Some(TEXT);
@@ -95,7 +144,9 @@ impl NotchApp {
         let settings = settings_path
             .as_ref()
             .map(|p| {
-                Settings::load(p).unwrap_or_else(|e| {
+                let legacy =
+                    config::legacy_settings_path().filter(|old| !p.exists() && old.exists());
+                Settings::load(legacy.as_ref().unwrap_or(p)).unwrap_or_else(|e| {
                     error = Some(e);
                     Settings::default()
                 })
@@ -112,6 +163,27 @@ impl NotchApp {
                 error = Some(format!("Tray tidak tersedia: {e}. Buka Atur untuk keluar."));
                 None
             }
+        };
+        let media = if demo {
+            demo_media(0)
+        } else {
+            Media::default()
+        };
+        let lyrics = if demo {
+            lyrics::Selection {
+                state: LyricState::Ready(demo_lyrics(0)),
+                key: lyrics::TrackKey::from_media(&media),
+                ..Default::default()
+            }
+        } else {
+            lyrics::Selection::default()
+        };
+        let initial_size = if expanded {
+            CANVAS
+        } else if demo && settings.lyrics_enabled {
+            MUSIC_COMPACT
+        } else {
+            COMPACT
         };
         Self {
             timer: FocusTimer::new(settings.focus_minutes),
@@ -130,10 +202,19 @@ impl NotchApp {
             monitor: telemetry::spawn(),
             header_wheel: HeaderWheel::default(),
             bridge: platform::media_bridge(),
-            media: Media::default(),
+            media,
             integration,
             last_geometry: None,
             motion: Expansion::new(expanded),
+            width: Dimension::new(initial_size.x),
+            height: Dimension::new(initial_size.y),
+            mascot,
+            lyrics_worker: lyrics::Worker::spawn(config::lyrics_cache_path()),
+            lyrics,
+            active_line: String::new(),
+            line_changed: Instant::now(),
+            demo,
+            demo_track: 0,
             window_region: Default::default(),
             fixed_surface: true,
         }
@@ -182,58 +263,187 @@ impl NotchApp {
         )));
     }
 
+    fn compact_size(&self) -> Vec2 {
+        if self.settings.lyrics_enabled
+            && !self.media.title.is_empty()
+            && !matches!(self.timer.phase, Phase::Running | Phase::Paused)
+        {
+            MUSIC_COMPACT
+        } else {
+            COMPACT
+        }
+    }
+
+    fn expanded_size(&self) -> Vec2 {
+        if self.tab == Tab::Media {
+            CANVAS
+        } else {
+            EXPANDED
+        }
+    }
+    fn target_size(&self) -> Vec2 {
+        if self.expanded {
+            self.expanded_size()
+        } else {
+            self.compact_size()
+        }
+    }
+
+    fn paint_mascot(&self, painter: &egui::Painter, rect: Rect) {
+        if self.settings.show_mascot {
+            if let Some(texture) = &self.mascot {
+                painter.image(
+                    texture.id(),
+                    rect,
+                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+                return;
+            }
+        }
+        icons::logo(painter, rect.center(), ACCENT);
+    }
+
+    fn sync_lyrics(&mut self) {
+        if !self.settings.lyrics_enabled {
+            if !matches!(self.lyrics.state, LyricState::Disabled) {
+                self.lyrics.id = self.lyrics_worker.cancel();
+                self.lyrics.key = None;
+                self.lyrics.state = LyricState::Disabled;
+            }
+        } else if self.demo {
+            if !matches!(self.lyrics.state, LyricState::Ready(_)) {
+                self.lyrics.state = LyricState::Ready(demo_lyrics(self.demo_track));
+            }
+        } else {
+            let key = lyrics::TrackKey::from_media(&self.media);
+            if key != self.lyrics.key || matches!(self.lyrics.state, LyricState::Disabled) {
+                self.lyrics.id = self.lyrics_worker.cancel();
+                self.lyrics.key = key.clone();
+                self.lyrics.state = if let Some(key) = key {
+                    self.lyrics.id = self.lyrics_worker.request(key, false);
+                    LyricState::Loading
+                } else {
+                    LyricState::NoTrack
+                };
+            }
+        }
+        while let Ok(update) = self.lyrics_worker.updates.try_recv() {
+            self.lyrics.accept(update);
+        }
+        let line = self
+            .lyrics
+            .state
+            .compact_line(self.media.position_at(Instant::now()));
+        if line != self.active_line {
+            self.active_line = line.to_owned();
+            self.line_changed = Instant::now();
+        }
+    }
+
+    fn retry_lyrics(&mut self) {
+        if self.demo {
+            return;
+        }
+        if let Some(key) = &self.lyrics.key {
+            self.lyrics.id = self.lyrics_worker.request(key.clone(), true);
+            self.lyrics.state = LyricState::Loading;
+        }
+    }
+
     fn compact(&mut self, ui: &mut egui::Ui, shape: Rect) {
         let origin = shape.min;
-        let width = shape.width();
-        let row = Rect::from_min_size(origin + vec2(20.0, 0.0), vec2(width - 40.0, 48.0));
-        icons::logo(ui.painter(), origin + vec2(29.0, 24.0), ACCENT);
-        let timer_active = self.timer.phase == Phase::Running || self.timer.phase == Phase::Paused;
+        let center_y = shape.top() + self.compact_size().y * 0.5;
+        self.paint_mascot(
+            ui.painter(),
+            Rect::from_center_size(pos2(origin.x + 30.0, center_y), vec2(36.0, 40.0)),
+        );
+        let timer_active = matches!(self.timer.phase, Phase::Running | Phase::Paused);
+        let music = self.compact_size() == MUSIC_COMPACT;
         let label = if timer_active {
             format!("Fokus  {}", self.timer.label())
         } else if !self.media.title.is_empty() {
             self.media.title.clone()
         } else {
-            format!("Luma   {}", chrono::Local::now().format("%H:%M"))
+            format!("Sela   {}", chrono::Local::now().format("%H:%M"))
         };
-        let text_rect =
-            Rect::from_min_max(origin + vec2(52.0, 12.0), origin + vec2(width - 72.0, 37.0));
-        let galley =
-            ui.painter()
-                .layout(label, FontId::proportional(13.0), TEXT, text_rect.width());
-        ui.painter()
-            .with_clip_rect(text_rect)
-            .galley(text_rect.min + vec2(0.0, 4.0), galley, TEXT);
-        let trailing = self
-            .snapshot
-            .battery
-            .as_ref()
-            .map(|b| format!("{}%", b.percent))
-            .unwrap_or_else(|| "•••".into());
-        ui.painter().text(
-            pos2(row.right() - 4.0, origin.y + 24.0),
-            Align2::RIGHT_CENTER,
-            trailing,
-            FontId::proportional(11.0),
-            MUTED,
+        let title_width = if music {
+            (shape.width() * 0.27).min(150.0)
+        } else {
+            shape.width() - 126.0
+        };
+        let text_rect = Rect::from_min_size(
+            pos2(origin.x + 58.0, center_y - 10.0),
+            vec2(title_width, 22.0),
         );
+        paint_line(ui.painter(), text_rect, &label, 13.0, TEXT);
+        if music {
+            let divider = text_rect.right() + 15.0;
+            ui.painter().line_segment(
+                [pos2(divider, center_y - 9.0), pos2(divider, center_y + 9.0)],
+                Stroke::new(1.0_f32, SURFACE),
+            );
+            let fade = if self.settings.reduced_motion {
+                1.0
+            } else {
+                (self.line_changed.elapsed().as_secs_f32() / 0.24).min(1.0)
+            };
+            let rect = Rect::from_min_max(
+                pos2(divider + 16.0, center_y - 10.0 + (1.0 - fade) * 2.0),
+                pos2(shape.right() - 24.0, center_y + 14.0),
+            );
+            paint_line(
+                ui.painter(),
+                rect,
+                &self.active_line,
+                13.0,
+                AMBER.gamma_multiply(0.4 + 0.6 * fade),
+            );
+        } else {
+            let trailing = self
+                .snapshot
+                .battery
+                .as_ref()
+                .map(|b| format!("{}%", b.percent))
+                .unwrap_or_else(|| "•••".into());
+            ui.painter().text(
+                pos2(shape.right() - 24.0, center_y),
+                Align2::RIGHT_CENTER,
+                trailing,
+                FontId::proportional(11.0),
+                MUTED,
+            );
+        }
         let response = ui.interact(
-            Rect::from_min_size(origin, vec2(width, 48.0)),
+            Rect::from_min_size(origin, vec2(shape.width(), self.compact_size().y)),
             Id::new("compact"),
             Sense::click(),
         );
-        response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Buka Luma"));
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(
+                egui::WidgetType::Button,
+                true,
+                format!(
+                    "Buka Sela. {label}. {}",
+                    if music { &self.active_line } else { "" }
+                ),
+            )
+        });
         if response.clicked() {
             self.open(ui.ctx());
         }
-        response.on_hover_text("Buka Luma · Ctrl+Alt+N");
+        response.on_hover_text(if music {
+            format!("{label}\n{}\nBuka Sela · Ctrl+Alt+N", self.active_line)
+        } else {
+            "Buka Sela · Ctrl+Alt+N".into()
+        });
     }
 
     fn expanded_ui(&mut self, ui: &mut egui::Ui) {
         let header = ui.horizontal(|ui| {
             let (r, _) = ui.allocate_exact_size(vec2(22.0, 24.0), Sense::hover());
-            icons::logo(ui.painter(), r.center(), ACCENT);
-            ui.label(RichText::new("Luma").size(17.0).strong())
+            self.paint_mascot(ui.painter(), r.expand2(vec2(2.0, 5.0)));
+            ui.label(RichText::new("Sela").size(17.0).font(semibold(17.0)))
                 .on_hover_text("Gulir header untuk pindah halaman");
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if icon_button(ui, Icon::Chevron, "Tutup panel · Esc", false, true).clicked() {
@@ -272,6 +482,7 @@ impl NotchApp {
             self.header_wheel.leave();
         }
         ui.add_space(12.0);
+        let tab_width = (ui.available_width() - 12.0) / 4.0;
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
             for (tab, icon, text) in [
@@ -281,7 +492,7 @@ impl NotchApp {
                 (Tab::Settings, Icon::Settings, "Atur"),
             ] {
                 let active = self.tab == tab;
-                let (r, response) = ui.allocate_exact_size(vec2(99.0, 34.0), Sense::click());
+                let (r, response) = ui.allocate_exact_size(vec2(tab_width, 34.0), Sense::click());
                 response.widget_info(|| {
                     egui::WidgetInfo::labeled(egui::WidgetType::Button, true, text)
                 });
@@ -365,21 +576,36 @@ impl NotchApp {
             });
             return;
         }
-        ui.horizontal(|ui| {
-            let (r, _) = ui.allocate_exact_size(vec2(58.0, 58.0), Sense::hover());
-            ui.painter().circle_filled(r.center(), 28.0, SURFACE);
-            ui.painter().circle_stroke(
-                r.center(),
-                19.0,
-                Stroke::new(1.0_f32, MUTED.gamma_multiply(0.3)),
-            );
-            ui.painter().circle_filled(r.center(), 6.0, ACCENT);
-            ui.add_space(6.0);
+        let body = ui.available_rect_before_wrap();
+        let left = Rect::from_min_size(body.min, vec2(226.0, 208.0));
+        let right = Rect::from_min_max(
+            body.min + vec2(254.0, 0.0),
+            pos2(body.right(), body.top() + 208.0),
+        );
+        ui.painter().line_segment(
+            [
+                pos2(body.left() + 240.0, body.top() + 2.0),
+                pos2(body.left() + 240.0, body.top() + 188.0),
+            ],
+            Stroke::new(1.0_f32, SURFACE),
+        );
+        let mut player = ui.new_child(
+            egui::UiBuilder::new()
+                .id_salt("player")
+                .max_rect(left)
+                .layout(Layout::top_down(Align::Min)),
+        );
+        player.horizontal(|ui| {
+            let (cover, _) = ui.allocate_exact_size(vec2(52.0, 52.0), Sense::hover());
+            ui.painter().rect_filled(cover, 12, ACCENT);
+            icons::draw(ui.painter(), cover.shrink(15.0), Icon::Music, BG);
+            ui.add_space(4.0);
             ui.vertical(|ui| {
                 ui.add(
-                    egui::Label::new(RichText::new(&self.media.title).size(19.0).strong())
+                    egui::Label::new(RichText::new(&self.media.title).font(semibold(18.0)))
                         .truncate(),
-                );
+                )
+                .on_hover_text(&self.media.title);
                 ui.add(
                     egui::Label::new(
                         RichText::new(if self.media.artist.is_empty() {
@@ -387,48 +613,50 @@ impl NotchApp {
                         } else {
                             &self.media.artist
                         })
-                        .size(13.0)
+                        .size(12.0)
                         .color(MUTED),
                     )
                     .truncate(),
-                );
-                ui.label(
-                    RichText::new(if self.media.playing {
-                        "Sedang diputar"
-                    } else {
-                        "Dijeda"
-                    })
-                    .size(11.0)
-                    .color(ACCENT),
-                );
+                )
+                .on_hover_text(&self.media.artist);
             });
         });
-        ui.add_space(22.0);
-        let fraction = if self.media.duration > 0.0 {
-            (self.media.position / self.media.duration).clamp(0.0, 1.0) as f32
-        } else {
-            0.0
-        };
-        progress(ui, fraction, ACCENT);
-        ui.horizontal(|ui| {
-            ui.label(
-                RichText::new(media_time(self.media.position))
-                    .size(11.0)
-                    .color(MUTED)
-                    .monospace(),
-            );
+        player.add_space(3.0);
+        player.label(
+            RichText::new(if self.demo {
+                "DEMO · DATA CONTOH"
+            } else if self.media.playing {
+                "SEDANG DIPUTAR"
+            } else {
+                "DIJEDA"
+            })
+            .size(10.0)
+            .color(ACCENT),
+        );
+        player.add_space(20.0);
+        let position = self.media.position_at(Instant::now());
+        progress(
+            &mut player,
+            if self.media.duration > 0.0 {
+                (position / self.media.duration).clamp(0.0, 1.0) as f32
+            } else {
+                0.0
+            },
+            ACCENT,
+        );
+        player.horizontal(|ui| {
+            ui.label(RichText::new(media_time(position)).size(11.0).color(MUTED));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.label(
                     RichText::new(media_time(self.media.duration))
                         .size(11.0)
-                        .color(MUTED)
-                        .monospace(),
+                        .color(MUTED),
                 );
             });
         });
-        ui.add_space(7.0);
-        ui.horizontal(|ui| {
-            ui.add_space(126.0);
+        player.add_space(8.0);
+        player.horizontal(|ui| {
+            ui.add_space(49.0);
             for (icon, label, command, enabled) in [
                 (
                     Icon::Previous,
@@ -453,20 +681,172 @@ impl NotchApp {
                     self.media.can_next,
                 ),
             ] {
-                if icon_button(
-                    ui,
-                    icon,
-                    label,
-                    matches!(command, MediaCommand::Toggle),
-                    enabled,
-                )
-                .clicked()
-                    && self.bridge.commands.send(command).is_err()
-                {
-                    self.error = Some("Layanan media berhenti. Mulai ulang Luma.".into());
+                let response = if matches!(command, MediaCommand::Toggle) {
+                    play_button(ui, icon, label, enabled)
+                } else {
+                    icon_button(ui, icon, label, false, enabled)
+                };
+                if response.clicked() {
+                    if self.demo {
+                        self.media.position = self.media.position_at(Instant::now());
+                        self.media.sampled_at = Instant::now();
+                        match command {
+                            MediaCommand::Toggle => self.media.playing = !self.media.playing,
+                            MediaCommand::Next | MediaCommand::Previous => {
+                                self.demo_track = (self.demo_track
+                                    + if matches!(command, MediaCommand::Next) {
+                                        1
+                                    } else {
+                                        4
+                                    })
+                                    % 5;
+                                let playing = self.media.playing;
+                                self.media = demo_media(self.demo_track);
+                                self.media.playing = playing;
+                                self.lyrics.state = LyricState::Ready(demo_lyrics(self.demo_track));
+                                self.lyrics.key = lyrics::TrackKey::from_media(&self.media);
+                            }
+                        }
+                    } else if self.bridge.commands.send(command).is_err() {
+                        self.error = Some("Layanan media berhenti. Mulai ulang Sela.".into());
+                    }
                 }
             }
         });
+        let mut lyric_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .id_salt("lyrics")
+                .max_rect(right)
+                .layout(Layout::top_down(Align::Min)),
+        );
+        self.lyrics_ui(&mut lyric_ui, position);
+        ui.advance_cursor_after_rect(Rect::from_min_max(
+            body.min,
+            pos2(body.right(), body.top() + 208.0),
+        ));
+    }
+
+    fn lyrics_ui(&mut self, ui: &mut egui::Ui, position: f64) {
+        let state = self.lyrics.state.clone();
+        let synced = matches!(state, LyricState::Ready(LyricData::Synced(_)));
+        ui.label(
+            RichText::new(if synced {
+                "LIRIK TERSINKRON"
+            } else {
+                "STATUS LIRIK"
+            })
+            .size(10.0)
+            .color(MUTED),
+        );
+        ui.add_space(18.0);
+        match &state {
+            LyricState::Ready(data @ LyricData::Synced(lines)) => {
+                let active = data.active_index(position);
+                let index = active.unwrap_or(0);
+                let previous = index
+                    .checked_sub(1)
+                    .and_then(|i| lines.get(i))
+                    .map(|l| l.text.as_str())
+                    .unwrap_or("");
+                lyric_label(ui, previous, 13.0, MUTED, false);
+                ui.add_space(7.0);
+                let fade = if self.settings.reduced_motion {
+                    1.0
+                } else {
+                    (self.line_changed.elapsed().as_secs_f32() / 0.24).min(1.0)
+                };
+                lyric_label(
+                    ui,
+                    &self.active_line,
+                    18.0,
+                    AMBER.gamma_multiply(0.4 + 0.6 * fade),
+                    true,
+                );
+                ui.add_space(7.0);
+                let next = lines
+                    .get(if active.is_some() { index + 1 } else { 0 })
+                    .map(|l| l.text.as_str())
+                    .unwrap_or("");
+                lyric_label(ui, next, 13.0, MUTED, false);
+                ui.add_space(22.0);
+                ui.label(
+                    RichText::new(if self.demo {
+                        "Lirik contoh oleh Sela · tanpa audio"
+                    } else if self.media.playing {
+                        "Mengikuti posisi pemutar · LRCLIB"
+                    } else {
+                        "Dijeda · baris tetap di sini · LRCLIB"
+                    })
+                    .size(10.0)
+                    .color(MUTED),
+                );
+            }
+            LyricState::Ready(LyricData::Plain(text)) => {
+                ui.label(
+                    RichText::new("Lirik tanpa sinkronisasi waktu")
+                        .size(12.0)
+                        .color(AMBER),
+                );
+                egui::ScrollArea::vertical()
+                    .id_salt("plain-lyrics")
+                    .max_height(122.0)
+                    .show(ui, |ui| {
+                        ui.label(RichText::new(text).size(13.0));
+                    });
+                ui.label(
+                    RichText::new(if self.demo {
+                        "Lirik contoh oleh Sela · tanpa audio"
+                    } else {
+                        "Sumber: LRCLIB"
+                    })
+                    .size(10.0)
+                    .color(MUTED),
+                );
+            }
+            _ => {
+                lyric_label(
+                    ui,
+                    state.compact_line(position),
+                    17.0,
+                    if matches!(state, LyricState::Error(_)) {
+                        ERROR
+                    } else {
+                        TEXT
+                    },
+                    true,
+                );
+                ui.add_space(8.0);
+                let explanation = match &state {
+                    LyricState::Disabled => "Aktifkan lirik di Atur untuk menampilkannya.",
+                    LyricState::Loading => "Mencari judul, artis, dan durasi yang cocok di LRCLIB.",
+                    LyricState::NoTrack => "Pemutar perlu menyediakan judul dan nama artis.",
+                    LyricState::Error(error) => error.as_str(),
+                    LyricState::Ready(LyricData::Instrumental) => {
+                        if self.demo {
+                            "Contoh lagu instrumental, tanpa lirik."
+                        } else {
+                            "Lagu ini ditandai sebagai instrumental di LRCLIB."
+                        }
+                    }
+                    _ => {
+                        if self.demo {
+                            "Contoh saat lirik belum tersedia. Musik tetap dapat diputar."
+                        } else {
+                            "Belum ada lirik yang cocok di LRCLIB. Musik tetap dapat diputar."
+                        }
+                    }
+                };
+                ui.label(RichText::new(explanation).size(12.0).color(MUTED));
+                if matches!(
+                    state,
+                    LyricState::Error(_) | LyricState::Ready(LyricData::NotFound)
+                ) && !self.demo
+                    && ui.small_button("Coba lagi").clicked()
+                {
+                    self.retry_lyrics();
+                }
+            }
+        }
     }
 
     fn focus_ui(&mut self, ui: &mut egui::Ui) {
@@ -613,6 +993,9 @@ impl NotchApp {
                 changed |= ui
                     .checkbox(&mut self.settings.reduced_motion, "Kurangi animasi")
                     .changed();
+                changed |= ui.checkbox(&mut self.settings.show_mascot, "Tampilkan Pijar, maskot Sela").changed();
+                changed |= ui.checkbox(&mut self.settings.lyrics_enabled, "Tampilkan lirik musik").changed();
+                ui.label(RichText::new("Saat aktif, judul, artis, dan durasi dikirim ke LRCLIB. Lirik disimpan dalam cache lokal.").size(11.0).color(MUTED));
                 changed |= ui
                     .checkbox(&mut self.settings.sound, "Bunyi saat sesi fokus selesai")
                     .changed();
@@ -654,12 +1037,12 @@ impl NotchApp {
                 );
                 ui.horizontal(|ui| {
                     ui.label(
-                        RichText::new(concat!("Luma Notch ", env!("CARGO_PKG_VERSION")))
+                        RichText::new(concat!("Sela ", env!("CARGO_PKG_VERSION")))
                             .size(11.0)
                             .color(MUTED),
                     );
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui.small_button("Keluar dari Luma").clicked() {
+                        if ui.small_button("Keluar dari Sela").clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     });
@@ -695,8 +1078,15 @@ impl eframe::App for NotchApp {
             self.snapshot = snapshot;
         }
         while let Ok(media) = self.bridge.updates.try_recv() {
-            self.media = media;
+            if !self.demo {
+                self.media = media;
+            }
         }
+        if self.demo && self.media.playing && self.media.position_at(now) >= self.media.duration {
+            self.media.position = self.media.duration;
+            self.media.playing = false;
+        }
+        self.sync_lyrics();
         if let Some(integration) = &self.integration {
             if let Some(action) = integration.poll() {
                 match action {
@@ -727,7 +1117,7 @@ impl eframe::App for NotchApp {
         {
             self.open(ctx);
         }
-        let previous_size = COMPACT + (EXPANDED - COMPACT) * self.motion.value();
+        let previous_size = vec2(self.width.value(), self.height.value());
         let previous_shape = Rect::from_min_size(
             pos2((ctx.screen_rect().width() - previous_size.x) * 0.5, 0.0),
             previous_size,
@@ -766,14 +1156,19 @@ impl eframe::App for NotchApp {
         }
         self.motion
             .advance(self.expanded, elapsed, self.settings.reduced_motion);
+        let target = self.target_size();
+        self.width
+            .advance(target.x, elapsed, self.settings.reduced_motion);
+        self.height
+            .advance(target.y, elapsed, self.settings.reduced_motion);
         let ppp = ctx.pixels_per_point();
-        let size = COMPACT + (EXPANDED - COMPACT) * self.motion.value();
+        let size = vec2(self.width.value(), self.height.value());
         // Windows keeps one fixed backing surface and clips its native input area.
         // Linux uses the same canvas for visual previews; native input clipping is Windows-only.
         let canvas = if self.fixed_surface || self.expanded || self.motion.is_active() {
-            EXPANDED
+            CANVAS
         } else {
-            COMPACT
+            size
         };
         self.geometry(ctx, canvas);
         let canvas_width = ctx.screen_rect().width();
@@ -829,10 +1224,11 @@ impl eframe::App for NotchApp {
                 if content_alpha > 0.001 {
                     // Lay out at the final width throughout the reveal: text never
                     // rewraps as the silhouette grows, and the mask does the reveal.
-                    let expanded_left = (canvas_width - EXPANDED.x) * 0.5;
+                    let expanded_size = self.expanded_size();
+                    let expanded_left = (canvas_width - expanded_size.x) * 0.5;
                     let content = Rect::from_min_size(
                         pos2(expanded_left, (1.0 - content_alpha) * 6.0),
-                        EXPANDED,
+                        expanded_size,
                     )
                     .shrink2(vec2(24.0, 18.0));
                     let mut child = ui.new_child(
@@ -849,23 +1245,29 @@ impl eframe::App for NotchApp {
                     } else if self.timer.completed > 0 {
                         format!("{} sesi fokus selesai", self.timer.completed)
                     } else {
-                        "Sedikit ruang. Lebih banyak fokus.".into()
+                        "Sela · sedikit ruang untukmu.".into()
                     };
-                    child.painter().text(
+                    let footer_painter =
+                        ui.painter().with_clip_rect(shape.intersect(ui.clip_rect()));
+                    footer_painter.text(
                         pos2(content.left(), content.bottom()),
                         Align2::LEFT_CENTER,
                         footer,
                         FontId::proportional(10.0),
-                        if self.error.is_some() { ERROR } else { MUTED },
+                        (if self.error.is_some() { ERROR } else { MUTED })
+                            .gamma_multiply(content_alpha),
                     );
-                    child.painter().circle_filled(
+                    footer_painter.circle_filled(
                         pos2(content.right() - 2.0, content.bottom()),
                         2.5,
-                        ACCENT,
+                        ACCENT.gamma_multiply(content_alpha),
                     );
                 }
             });
         self.motion.retarget(self.expanded);
+        let target = self.target_size();
+        self.width.retarget(target.x);
+        self.height.retarget(target.y);
         if self
             .monitor
             .set_active(self.expanded && self.tab == Tab::System)
@@ -882,10 +1284,19 @@ impl eframe::App for NotchApp {
                 }
             });
         }
-        if self.motion.is_active() {
+        if self.motion.is_active()
+            || self.width.is_active()
+            || self.height.is_active()
+            || !self.settings.reduced_motion
+                && self.line_changed.elapsed() < Duration::from_millis(240)
+        {
             ctx.request_repaint();
         } else {
-            ctx.request_repaint_after(Duration::from_millis(250));
+            ctx.request_repaint_after(Duration::from_millis(if self.media.playing {
+                100
+            } else {
+                250
+            }));
         }
         if let Some(started) = self.hover_started {
             ctx.request_repaint_after(
@@ -960,4 +1371,112 @@ fn media_time(seconds: f64) -> String {
     }
     let seconds = seconds as u64;
     format!("{}:{:02}", seconds / 60, seconds % 60)
+}
+
+fn semibold(size: f32) -> FontId {
+    FontId::new(size, egui::FontFamily::Name("semibold".into()))
+}
+
+fn paint_line(painter: &egui::Painter, rect: Rect, text: &str, size: f32, color: Color32) {
+    let mut job = egui::text::LayoutJob::simple(
+        text.replace(['\n', '\r'], " "),
+        FontId::proportional(size),
+        color,
+        rect.width().max(1.0),
+    );
+    job.wrap.max_rows = 1;
+    job.wrap.break_anywhere = true;
+    let galley = painter.layout_job(job);
+    painter
+        .with_clip_rect(rect.intersect(painter.clip_rect()))
+        .galley(rect.min, galley, color);
+}
+
+fn lyric_label(ui: &mut egui::Ui, text: &str, size: f32, color: Color32, strong: bool) {
+    let font = if strong {
+        semibold(size)
+    } else {
+        FontId::proportional(size)
+    };
+    // Allocate a full-width row, then anchor its galley at the shared left edge.
+    // add_sized creates a centered child layout even for a left-aligned Label.
+    let (rect, response) =
+        ui.allocate_exact_size(vec2(ui.available_width(), size + 8.0), Sense::hover());
+    let mut job = egui::text::LayoutJob::simple(
+        text.replace(['\n', '\r'], " "),
+        font,
+        color,
+        rect.width().max(1.0),
+    );
+    job.wrap.max_rows = 1;
+    job.wrap.break_anywhere = true;
+    let galley = ui.painter().layout_job(job);
+    let origin = pos2(rect.left(), rect.center().y - galley.size().y * 0.5);
+    ui.painter()
+        .with_clip_rect(rect.intersect(ui.clip_rect()))
+        .galley(origin, galley, color);
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Label, true, text));
+    response.on_hover_text(text);
+}
+
+// Original sample text. Enabled only by the explicit --demo flag; no audio or LRCLIB requests.
+const DEMO_LYRICS: &str = "[00:00]Pelan saja, pagi masih panjang\n[00:06]Ada cahaya di sela harimu\n[00:12]Satu langkah, lalu satu lagi\n[00:18]Biarkan dunia menunggu sebentar\n[00:24]Kita punya ruang untuk bernapas\n[00:30]Yang kecil pun bisa menyala\n[00:36]Simpan hangat ini sampai nanti\n[00:42]Pulanglah pada tenangmu";
+fn demo_media(index: usize) -> Media {
+    Media {
+        title: [
+            "Morning Light",
+            "Ruang kecil untuk hari yang berjalan perlahan — Sela Sessions",
+            "Quiet Hours",
+            "Soft Rain",
+            "Little Lantern",
+        ][index % 5]
+            .into(),
+        artist: "Sela Studio".into(),
+        source: "Demo".into(),
+        playing: true,
+        position: 6.0,
+        duration: 48.0,
+        can_toggle: true,
+        can_previous: true,
+        can_next: true,
+        ..Default::default()
+    }
+}
+
+fn demo_lyrics(index: usize) -> LyricData {
+    match index % 5 {
+        1 => LyricData::Synced(lyrics::parse_lrc("[00:00]Di antara langkah yang panjang\n[00:06]Kita punya ruang kecil untuk menarik napas dan menjaga cahaya yang menyala di sela hari ini\n[00:12]Lanjutkan saat kamu siap")),
+        2 => LyricData::NotFound,
+        3 => LyricData::Plain("Hujan pelan di jendela\nKita berteduh sebentar\nAda tenang di antara\nHal-hal yang belum selesai".into()),
+        4 => LyricData::Instrumental,
+        _ => LyricData::Synced(lyrics::parse_lrc(DEMO_LYRICS)),
+    }
+}
+
+fn play_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) -> egui::Response {
+    ui.add_enabled_ui(enabled, |ui| {
+        let (r, response) = ui.allocate_exact_size(vec2(44.0, 44.0), Sense::click());
+        response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, enabled, label));
+        ui.painter().rect_filled(
+            r,
+            12,
+            if response.hovered() {
+                ACCENT.gamma_multiply(0.86)
+            } else {
+                ACCENT
+            },
+        );
+        if response.has_focus() {
+            ui.painter().rect_stroke(
+                r.expand(2.0),
+                14,
+                Stroke::new(1.0_f32, TEXT),
+                StrokeKind::Outside,
+            );
+        }
+        icons::draw(ui.painter(), r.shrink(12.0), icon, BG);
+        response.on_hover_text(label)
+    })
+    .inner
 }

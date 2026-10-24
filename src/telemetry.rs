@@ -43,7 +43,7 @@ pub fn spawn() -> Monitor {
     let (tx, rx) = mpsc::channel();
     let (control, commands) = mpsc::channel();
     thread::Builder::new()
-        .name("luma-system".into())
+        .name("sela-system".into())
         .spawn(move || {
             let mut system = System::new();
             let mut active = false;

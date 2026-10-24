@@ -70,9 +70,71 @@ fn smoothstep(start: f32, end: f32, value: f32) -> f32 {
     t * t * (3.0 - 2.0 * t)
 }
 
+/// Independent pixel dimensions let the music pill grow without resizing the OS surface.
+pub struct Dimension {
+    value: f64,
+    velocity: f64,
+    target: f64,
+}
+
+impl Dimension {
+    pub fn new(value: f32) -> Self {
+        Self {
+            value: value.into(),
+            velocity: 0.0,
+            target: value.into(),
+        }
+    }
+    pub fn value(&self) -> f32 {
+        self.value as f32
+    }
+    pub fn retarget(&mut self, value: f32) {
+        self.target = value.into();
+    }
+    pub fn is_active(&self) -> bool {
+        self.value != self.target || self.velocity != 0.0
+    }
+    pub fn advance(&mut self, target: f32, elapsed: Duration, reduced: bool) {
+        if reduced {
+            *self = Self::new(target);
+            return;
+        }
+        let omega = if self.target >= self.value {
+            32.0
+        } else {
+            38.0
+        };
+        let seconds = elapsed.as_secs_f64();
+        let displacement = self.value - self.target;
+        let coefficient = self.velocity + omega * displacement;
+        let decay = (-omega * seconds).exp();
+        self.value = self.target + (displacement + coefficient * seconds) * decay;
+        self.velocity = (self.velocity - omega * coefficient * seconds) * decay;
+        if (self.value - self.target).abs() < 0.03 && self.velocity.abs() < 0.9 {
+            self.value = self.target;
+            self.velocity = 0.0;
+        }
+        self.target = target.into();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn music_width_retargets_continuously_and_reduced_motion_snaps() {
+        let mut width = Dimension::new(324.0);
+        width.advance(580.0, Duration::from_secs(15), false);
+        assert_eq!(width.value(), 324.0);
+        width.advance(580.0, Duration::from_millis(70), false);
+        let before = (width.value, width.velocity);
+        width.advance(464.0, Duration::ZERO, false);
+        assert_eq!((width.value, width.velocity), before);
+        width.advance(600.0, Duration::ZERO, true);
+        assert_eq!(width.value(), 600.0);
+        assert!(!width.is_active());
+    }
 
     #[test]
     fn idle_interval_does_not_skip_the_opening() {

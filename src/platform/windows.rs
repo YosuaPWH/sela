@@ -181,7 +181,7 @@ pub fn startup_error(message: &str) {
         let _ = MessageBoxW(
             None,
             &HSTRING::from(message),
-            w!("Luma tidak dapat dibuka"),
+            w!("Sela tidak dapat dibuka"),
             MB_OK | MB_ICONERROR,
         );
     }
@@ -220,6 +220,7 @@ fn read_media(session: &GlobalSystemMediaTransportControlsSession) -> windows::c
         can_previous: controls.IsPreviousEnabled()?,
         can_next: controls.IsNextEnabled()?,
         error: None,
+        sampled_at: std::time::Instant::now(),
     })
 }
 
@@ -246,7 +247,7 @@ pub fn media_bridge() -> MediaBridge {
     let (tx, updates) = mpsc::channel();
     let (commands, rx) = mpsc::channel();
     thread::Builder::new()
-        .name("luma-media".into())
+        .name("sela-media".into())
         .spawn(move || {
             // WinRT calls and async waits stay on a dedicated MTA thread, away from rendering.
             let setup = unsafe { RoInitialize(RO_INIT_MULTITHREADED) }.and_then(|_| {
@@ -309,24 +310,21 @@ impl DesktopIntegration {
         let toggle = MenuItem::new("Buka / tutup    Ctrl+Alt+N", true, None);
         let focus = MenuItem::new("Timer fokus", true, None);
         let settings = MenuItem::new("Pengaturan", true, None);
-        let quit = MenuItem::new("Keluar dari Luma", true, None);
+        let quit = MenuItem::new("Keluar dari Sela", true, None);
         menu.append_items(&[&toggle, &focus, &settings, &quit])
             .map_err(|e| e.to_string())?;
-        let mut rgba = vec![0u8; 32 * 32 * 4];
-        for y in 5..27 {
-            for x in 4..28 {
-                let i = (y * 32 + x) * 4;
-                let color = if (13..19).contains(&x) && (11..21).contains(&y) {
-                    [169, 238, 192, 255]
-                } else {
-                    [24, 27, 26, 255]
-                };
-                rgba[i..i + 4].copy_from_slice(&color);
-            }
-        }
-        let icon = Icon::from_rgba(rgba, 32, 32).map_err(|e| e.to_string())?;
+        let sheet = image::load_from_memory(include_bytes!("../../assets/pijar-sheet.png"))
+            .map_err(|e| e.to_string())?;
+        let pijar = sheet
+            .crop_imm(0, 0, (sheet.width() as f32 * 0.30) as u32, sheet.height())
+            .resize(32, 32, image::imageops::FilterType::Lanczos3)
+            .to_rgba8();
+        // Fit the full character into a square tray icon, preserving transparent edges.
+        let mut canvas = image::RgbaImage::new(32, 32);
+        image::imageops::overlay(&mut canvas, &pijar, ((32 - pijar.width()) / 2).into(), 0);
+        let icon = Icon::from_rgba(canvas.into_raw(), 32, 32).map_err(|e| e.to_string())?;
         let tray = TrayIconBuilder::new()
-            .with_tooltip("Luma Notch • Ctrl+Alt+N")
+            .with_tooltip("Sela • Ctrl+Alt+N")
             .with_icon(icon)
             .with_menu(Box::new(menu))
             .build()

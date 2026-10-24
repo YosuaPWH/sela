@@ -6,3 +6,5 @@ pub mod motion;
 pub mod navigation;
 pub mod platform;
 pub mod telemetry;
+
+pub mod lyrics;

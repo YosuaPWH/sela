@@ -24,14 +24,15 @@ jobs:
       - name: Package portable app
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist/LumaNotch | Out-Null
-          Copy-Item target/release/luma-notch.exe,README.md,LICENSE dist/LumaNotch
-          Copy-Item -Recurse docs dist/LumaNotch
-          Compress-Archive -Path dist/LumaNotch/* -DestinationPath dist/LumaNotch-windows-x64.zip
+          New-Item -ItemType Directory -Force dist/Sela | Out-Null
+          Copy-Item target/release/sela-notch.exe,README.md,LICENSE,PRODUCT.md,DESIGN.md dist/Sela
+          Copy-Item -Recurse docs dist/Sela
+          Copy-Item -Recurse assets dist/Sela
+          Compress-Archive -Path dist/Sela/* -DestinationPath dist/Sela-windows-x64.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: LumaNotch-windows-x64
-          path: dist/LumaNotch-windows-x64.zip
+          name: Sela-windows-x64
+          path: dist/Sela-windows-x64.zip
 
   linux-core:
     runs-on: ubuntu-latest

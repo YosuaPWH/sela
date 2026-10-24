@@ -1,7 +1,7 @@
 #![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
 
 use eframe::egui;
-use luma_notch::{app::NotchApp, platform};
+use sela_notch::{app::NotchApp, platform};
 
 fn main() -> eframe::Result {
     let _instance = match platform::single_instance() {
@@ -13,10 +13,11 @@ fn main() -> eframe::Result {
         }
     };
     let expanded = std::env::args().any(|a| a == "--expanded");
+    let demo = std::env::args().any(|a| a == "--demo");
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("Luma Notch")
-            .with_inner_size([464.0, 370.0])
+            .with_title("Sela")
+            .with_inner_size([600.0, 370.0])
             .with_decorations(false)
             .with_transparent(true)
             .with_always_on_top()
@@ -28,9 +29,9 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
     eframe::run_native(
-        "Luma Notch",
+        "Sela",
         options,
-        Box::new(move |cc| Ok(Box::new(NotchApp::new(cc, expanded)))),
+        Box::new(move |cc| Ok(Box::new(NotchApp::new(cc, expanded, demo)))),
     )
     .inspect_err(|e| platform::startup_error(&e.to_string()))
 }
