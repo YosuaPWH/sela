@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title id="title">Luma Notch</title>
+  <rect width="96" height="96" rx="24" fill="#A9EEC0"/>
+  <path d="M16 0h64v47c0 13.255-10.745 24-24 24H40c-13.255 0-24-10.745-24-24Z" fill="#090B0A"/>
+  <g stroke="#A9EEC0" stroke-width="6" stroke-linecap="round">
+    <path d="M34 29v12"/>
+    <path d="M48 21v28"/>
+    <path d="M62 26v18"/>
+  </g>
+</svg>

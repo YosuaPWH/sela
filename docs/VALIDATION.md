@@ -9,12 +9,22 @@ Dijalankan pada 24 Oktober 2026 di Linux x64 dengan Rust 1.99.1. Build Windows m
 | `cargo fmt --all -- --check` | Lulus |
 | `cargo clippy --locked --all-targets -- -D warnings` | Lulus |
 | `cargo clippy --locked --target x86_64-pc-windows-gnu --all-targets -- -D warnings` | Lulus |
-| `cargo test --locked --all-targets` | 8 tes lulus |
+| `cargo test --locked --all-targets` | 12 tes lulus |
 | `cargo build --locked --release --target x86_64-pc-windows-gnu` | Lulus; executable PE32+ x64, subsystem Windows GUI |
 
 Tes mencakup jeda/lanjut timer, penyelesaian tepat satu kali setelah durasi terlampaui, reset sesi aktif, default kompatibel pengaturan lama, pembatasan nilai, penanganan JSON rusak tanpa menimpa file, serta penyimpanan dan penggantian pengaturan.
 
 Executable diperiksa dengan `objdump -p`: hanya mengimpor DLL sistem Windows, tanpa kebutuhan DLL MinGW terpisah. Ini pemeriksaan statis, bukan bukti runtime Windows.
+
+## Pemeriksaan referensi dan navigasi 0.1.2
+
+- Referensi Poni ditelaah pada commit d24628468173a0d7ead8d6f7f56a81f00bab3371; sumber dan penerapannya dicatat di REFERENCE_PONI.md.
+- Tiga tes wheel memeriksa akumulasi gerakan kecil, batas satu langkah dalam burst, dan pergantian arah. Tes worker memeriksa baseline/hasil aktif dan tidak adanya pembacaan CPU/RAM setelah halaman dijeda.
+- Uji UI Linux memeriksa scroll header ke depan/belakang dan wrap, cooldown burst, serta scroll isi halaman yang tetap pada halaman tersebut.
+- State Sistem saat menyiapkan baseline dan sesudah data tersedia dicapture. CPU/RAM dipanggil hanya saat halaman Sistem terbuka; pemeriksaan baterai ringkas tetap berjalan setiap 30 detik.
+- Timer, klik tab, shortcut lokal, dan keluar aplikasi dicoba ulang. Tampilan Sistem juga dicapture pada 150%.
+- README dirender lokal dengan parser Markdown dan stylesheet GitHub, diperiksa pada lebar 1040 dan 420 piksel: tidak ada overflow halaman, aset rusak, atau anchor navigasi yang hilang. Tampilan ini pratinjau lokal, bukan bukti halaman telah diterbitkan di GitHub.
+- Pembacaan berdasarkan kebutuhan mengurangi kerja CPU/RAM saat tertutup; belum ada benchmark CPU idle atau FPS Windows.
 
 ## Pemeriksaan animasi 0.1.1
 
@@ -28,7 +38,7 @@ Executable diperiksa dengan `objdump -p`: hanya mengimpor DLL sistem Windows, ta
 
 ## Pratinjau interaktif Linux
 
-Aplikasi native eframe dijalankan dengan renderer OpenGL perangkat lunak di Xvfb 1440×900; capture 0.1.1 memakai compositor xcompmgr. Capture berasal dari framebuffer aplikasi yang berjalan, bukan mockup. `WINIT_X11_SCALE_FACTOR=1.5` dipakai untuk capture 150%.
+Aplikasi native eframe dijalankan dengan renderer OpenGL perangkat lunak di Xvfb 1440×900; capture 0.1.1 dan 0.1.2 memakai compositor xcompmgr. Capture berasal dari framebuffer aplikasi yang berjalan, bukan mockup. `WINIT_X11_SCALE_FACTOR=1.5` dipakai untuk capture 150%.
 
 - Empat tab, timer berjalan, state jeda, dan reset dicoba.
 - Digit timer tetap sama selama jeda; keluar aplikasi lewat Atur berhasil.
@@ -39,7 +49,7 @@ Aplikasi native eframe dijalankan dengan renderer OpenGL perangkat lunak di Xvfb
 - Tampilan 100% dan 150% diperiksa tanpa clipping pada state yang dicapture.
 - Review terpisah versi 0.1.0 memberi disposition **ship** pada ruang lingkup pratinjau UI Linux dan kode yang diperiksa. Perubahan gerak 0.1.1 diperiksa melalui capture dan uji interaksi di atas; integrasi Windows tetap di luar verifikasi runtime.
 
-Capture di `screenshots/`: `media.png`, `focus.png`, `focus-running.png`, `focus-paused.png`, `system.png`, `settings.png`, `compact.png`, `focus-150.png`, `settings-150.png`. Nilai sistem adalah data langsung mesin pengembangan; media kosong karena integrasi Windows tidak aktif pada Linux.
+Capture di `screenshots/`: `media.png`, `focus.png`, `focus-running.png`, `focus-paused.png`, `system.png`, `system-loading.png`, `system-150.png`, `settings.png`, `compact.png`, `focus-150.png`, `settings-150.png`. Nilai sistem adalah data langsung mesin pengembangan; media kosong karena integrasi Windows tidak aktif pada Linux.
 
 ## Checklist runtime Windows yang belum dijalankan
 

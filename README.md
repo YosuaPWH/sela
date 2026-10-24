@@ -1,29 +1,63 @@
-# Luma Notch
+<p align="center"><img src="docs/brand/luma-mark.svg" width="80" height="80" alt="Logo Luma: tiga garis mint di dalam notch hitam"></p>
 
-Notch terinspirasi Mac untuk Windows, ditulis dengan Rust. Overlay hitam di tengah atas layar membuka akses ke musik, timer fokus, dan status perangkat, tanpa akun atau WebView.
+<h1 align="center">Luma Notch</h1>
 
-![Animasi Luma Notch](docs/animation.gif)
+<p align="center"><strong>Ruang kecil untuk musik dan fokus.</strong><br>Notch terinspirasi Mac untuk Windows, dibuat dengan Rust.</p>
 
-Rekaman UI native di Linux pada skala 100%, termasuk membalik arah saat transisi. Integrasi OS Windows tidak berjalan pada pratinjau ini.
+<p align="center">
+  <a href="#mulai"><strong>Mulai</strong></a> ·
+  <a href="#galeri">Tampilan</a> ·
+  <a href="docs/BUILDING.md">Build dari sumber</a> ·
+  <a href="docs/VALIDATION.md">Status pengujian</a>
+</p>
 
-## Fitur
+<p align="center"><code>Windows 10 / 11</code> · <code>Native Rust</code> · <code>Portable</code> · <a href="LICENSE">MIT</a></p>
 
-- **Media:** judul, artis, posisi, dan kontrol play/pause, sebelumnya, berikutnya melalui Windows System Media Transport Controls. Mendukung aplikasi yang menyediakan sesi media, seperti Spotify dan browser tertentu. Kontrol mengikuti kemampuan pemutar.
-- **Fokus:** pilihan 15, 25, atau 50 menit, jeda, lanjutkan, reset, dan bunyi Windows saat selesai. Sesi tetap berjalan saat panel ditutup; keluar aplikasi membatalkan sesi. Jumlah sesi dihitung sejak aplikasi dibuka.
-- **Sistem:** pemakaian CPU dan RAM diperbarui setiap 2 detik; baterai dan koneksi listrik ditampilkan jika perangkat menyediakannya.
-- **Overlay:** selalu di atas, tanpa bingkai/taskbar, sudut transparan, buka saat hover atau klik, pin panel, dan animasi spring yang menyambung saat arah dibalik. Isi panel masuk lewat fade dan mask tanpa perubahan lebar layout; mode kurangi animasi tersedia.
-- **Pengaturan:** jarak dari tepi atas, monitor, hover, animasi, dan bunyi disimpan secara lokal.
-- **Windows:** ikon tray dengan menu keluar, shortcut global `Ctrl+Alt+N`, serta satu instance per sesi pengguna.
+<p align="center"><img src="docs/screenshots/focus-150.png" width="512" alt="Panel Fokus Luma dengan timer, pilihan durasi, dan tombol mulai"></p>
 
-## Menjalankan di Windows
+Luma tinggal di tengah atas layar. Saat ringkas, ia menampilkan timer, judul musik, atau jam. Sentuh dengan kursor untuk membuka kontrol, lalu lanjutkan pekerjaanmu.
 
-Windows 10 versi 1809 atau lebih baru / Windows 11, x64, dengan driver OpenGL 2.0+.
+Aplikasi native tanpa WebView, akun, atau layanan server. Gerak spring tetap menyambung saat arahnya dibalik; isi panel masuk bertahap dengan layout yang tetap. Pembacaan CPU dan RAM berjalan hanya ketika halaman Sistem terbuka.
 
-1. Ekstrak `LumaNotch-windows-x64.zip` dari hasil build.
-2. Jalankan `luma-notch.exe`. Notch muncul di atas monitor utama.
-3. Sentuh notch dengan kursor selama sekitar seperempat detik, klik, atau tekan `Ctrl+Alt+N`.
+<sub>Demo dan galeri berasal dari aplikasi yang berjalan di Linux untuk pratinjau UI. Integrasi Windows belum diuji langsung; bukti dan batas pengujian ada di <a href="docs/VALIDATION.md">catatan validasi</a>.</sub>
 
-Klik tab **Media**, **Fokus**, **Sistem**, atau **Atur**. `Esc` menutup panel. Panel yang dibuka dengan hover menutup setelah kursor keluar; panel yang dibuka dengan klik/shortcut tetap terbuka sampai ditutup. Pin mempertahankan panel hover. Menu tray dan tab Atur menyediakan **Keluar dari Luma**.
+<details>
+<summary><strong>Lihat animasi buka dan tutup</strong></summary>
+
+<p align="center"><img src="docs/animation.gif" width="512" alt="Rekaman membuka dan menutup Fokus, termasuk membalik arah saat bergerak"></p>
+
+</details>
+
+## Yang bisa dilakukan
+
+| Halaman | Kegunaan |
+| --- | --- |
+| **Media** | Judul, artis, posisi lagu, play/pause, sebelumnya, dan berikutnya melalui kontrol media Windows. Tombol mengikuti kemampuan pemutar. |
+| **Fokus** | Sesi 15, 25, atau 50 menit, jeda, lanjutkan, reset, dan bunyi saat selesai. Countdown tetap terlihat ketika notch diringkas. |
+| **Sistem** | CPU dan RAM setiap 2 detik selama halaman terbuka. Baterai dan status listrik ditampilkan jika perangkat menyediakannya. |
+| **Atur** | Pilih monitor dan jarak dari atas; atur hover, animasi, dan bunyi. Perubahan tersimpan di perangkat. |
+
+Notch selalu di atas, tanpa bingkai atau tombol taskbar. Pin mempertahankan panel hover. Ikon tray menyediakan akses ke panel, timer, pengaturan, dan keluar aplikasi. Windows membatasi aplikasi ke satu instance per sesi pengguna.
+
+## Galeri
+
+| Fokus | Sistem |
+| --- | --- |
+| ![Timer fokus berjalan dengan pilihan durasi dan tombol jeda](docs/screenshots/focus-running.png) | ![CPU dan RAM dari mesin pengembangan](docs/screenshots/system.png) |
+| **Media** | **Pengaturan** |
+| ![Petunjuk saat belum ada sesi pemutar](docs/screenshots/media.png) | ![Pengaturan hover, animasi, bunyi, dan posisi](docs/screenshots/settings.png) |
+
+<p align="center"><img src="docs/screenshots/compact.png" width="324" alt="Notch ringkas di tepi atas layar"><br><sub>Ringkas saat kamu kembali bekerja. Nilai pada galeri berasal dari mesin pengembangan.</sub></p>
+
+## Mulai
+
+**Windows 10 versi 1809 atau lebih baru / Windows 11, x64**, dengan driver OpenGL 2.0+.
+
+1. Ekstrak ZIP portable Luma Notch yang disertakan bersama pengiriman proyek, atau unduh artifact **LumaNotch-windows-x64** dari workflow **Build and test** setelah repo dijalankan di GitHub Actions.
+2. Jalankan **`luma-notch.exe`**. Notch muncul di atas monitor utama.
+3. Sentuh notch dengan kursor sebentar, klik, atau tekan **`Ctrl+Alt+N`**.
+
+Tidak perlu installer atau hak administrator. Aplikasi belum ditandatangani dengan sertifikat penerbit dan tidak mengubah pengaturan startup Windows.
 
 Untuk langsung membuka panel:
 
@@ -31,52 +65,52 @@ Untuk langsung membuka panel:
 .\luma-notch.exe --expanded
 ```
 
-Aplikasi portable ini belum ditandatangani dengan sertifikat penerbit. Windows dapat menampilkan SmartScreen. Tidak memerlukan hak administrator dan tidak mengubah pengaturan startup Windows.
+### Kendali cepat
 
-## Build dari sumber
+| Tindakan | Cara |
+| --- | --- |
+| Buka / tutup panel | `Ctrl+Alt+N` |
+| Tutup panel | `Esc` |
+| Buka lewat hover | Tahan kursor di notch sekitar 240 ms |
+| Pindah halaman | Klik tab, atau **gulir di header**; ke bawah untuk halaman berikutnya, ke atas untuk sebelumnya |
+| Biarkan panel hover terbuka | Klik ikon pin |
+| Keluar | Menu tray atau **Atur → Keluar dari Luma** |
 
-Pasang [Rust stable](https://rustup.rs/) dan **Visual Studio Build Tools** dengan workload **Desktop development with C++** serta Windows SDK. Lalu:
+Gulir pada isi halaman tetap untuk kontrol halaman tersebut. Gerakan kecil trackpad dikumpulkan dan perpindahan diberi jeda agar satu gerakan tidak melompat banyak halaman.
+
+Panel yang dibuka lewat klik atau shortcut tetap terbuka sampai ditutup. Panel hover menutup sekitar 650 ms setelah kursor keluar, kecuali dipin. Mode **Kurangi animasi** langsung menampilkan state akhir.
+
+## Data tetap di perangkat
+
+- Tidak ada telemetri jaringan, akun, atau sinkronisasi server.
+- Metadata dan statistik dibaca dari sistem lokal. Pemutar harus menyediakan sesi Windows System Media Transport Controls, seperti Spotify atau browser yang mendukungnya.
+- CPU/RAM berhenti dibaca saat halaman Sistem ditutup. Baterai ringkas diperiksa setiap 30 detik dan ikut diperbarui saat halaman Sistem aktif.
+- Pengaturan tersimpan di `%APPDATA%\Luma\LumaNotch\config\settings.json`. JSON rusak memakai default sementara dan menampilkan pesan di Atur; file asli dipertahankan sampai kamu menyimpan perubahan.
+- Sesi fokus dan jumlah sesi hanya bertahan selama aplikasi berjalan. Keluar aplikasi membatalkan timer.
+
+## Build dan pengembangan
+
+Dengan Rust stable, Visual Studio Build Tools, dan Windows SDK:
 
 ```powershell
 cargo build --locked --release
 .\target\release\luma-notch.exe
 ```
 
-Verifikasi:
+Panduan toolchain, cross-build, tes, struktur kode, dan artifact CI ada di **[docs/BUILDING.md](docs/BUILDING.md)**. Bukti uji dan checklist Windows ada di **[docs/VALIDATION.md](docs/VALIDATION.md)**.
 
-```powershell
-cargo fmt --all -- --check
-cargo clippy --locked --all-targets -- -D warnings
-cargo test --locked --all-targets
-```
+### Status
 
-Workflow GitHub Actions menjalankan pemeriksaan Windows dan menyiapkan ZIP portable pada setiap push, PR, atau eksekusi manual. Tidak ada publikasi release otomatis.
+Luma masih pada tahap awal. Build Windows dan tes logika dijalankan dari Linux; media, tray, shortcut global, click-through, dan monitor dengan DPI berbeda masih memerlukan pengujian langsung di Windows. Galeri tidak menyatakan integrasi tersebut telah diuji.
 
-## Pengaturan dan privasi
+Jika media belum tampil, pastikan pemutar aktif dan mendukung kontrol media Windows. Jika shortcut dipakai aplikasi lain, klik notch atau gunakan tray. Atur jarak dan monitor jika notch menutupi kontrol aplikasi lain.
 
-Pengaturan disimpan melalui direktori konfigurasi pengguna Windows, umumnya `%APPDATA%\Luma\LumaNotch\config\settings.json`. Tidak ada telemetri jaringan atau layanan server. Aplikasi membaca metadata media aktif dan statistik sistem lokal. Pengaturan rusak menghasilkan pesan di tab Atur dan default sementara; file asli tetap ada sampai Anda menyimpan perubahan pengaturan.
+Saat melaporkan masalah, sertakan versi Luma, versi Windows, skala DPI/monitor, pemutar yang dipakai, dan langkah untuk mengulanginya.
 
-## Struktur
+## Referensi dan kredit
 
-```text
-src/app.rs               UI notch, animasi, dan interaksi
-src/focus.rs             state machine timer, diuji tanpa sleep
-src/motion.rs            spring analitik dan fade, independen refresh rate
-src/config.rs            konfigurasi JSON dan validasi
-src/telemetry.rs         worker CPU/RAM/baterai
-src/platform/windows.rs  WinRT media, tray, shortcut, monitor, mutex
-src/icons.rs             ikon vektor
-docs/VALIDATION.md       bukti verifikasi dan checklist Windows
-```
+- [Poni / Oyen Poni](https://github.com/lucacadalora/poni) menjadi referensi untuk navigasi header, pembacaan sistem sesuai kebutuhan, dan susunan README. [Catatan kajian](docs/REFERENCE_PONI.md) menghubungkannya ke sumber yang diperiksa.
+- Dibangun dengan [egui/eframe](https://github.com/emilk/egui), [windows-rs](https://github.com/microsoft/windows-rs), dan [sysinfo](https://github.com/GuillaumeGomez/sysinfo).
+- Logo, ikon, screenshot, dan rekaman yang ditampilkan adalah milik proyek Luma. Screenshot diambil dari aplikasi yang berjalan.
 
-Media dan metrik berjalan pada worker terpisah agar pembacaan OS tidak menahan rendering. Timer memakai durasi monotonik, bukan jam kalender. Worker berhenti saat aplikasi berakhir. Linux mendukung pratinjau UI dan tes logika inti; integrasi OS khusus Windows dinonaktifkan pada pratinjau.
-
-## Batasan
-
-- Metadata, durasi, dan tombol bergantung pada dukungan sesi media pemutar. Tidak ada sesi aktif berarti panel kosong, bukan data simulasi.
-- Overlay dapat menutupi bagian atas aplikasi lain. Atur jarak/monitor jika bertabrakan dengan kontrol aplikasi.
-- Pemindahan monitor dengan DPI berbeda, fullscreen eksklusif, dan perilaku tray harus diverifikasi pada Windows; lihat checklist validasi.
-- Shortcut yang sudah dipakai aplikasi lain mungkin tidak terdaftar. Menu tray dan klik notch tetap tersedia.
-- Pengujian runtime Windows belum dilakukan di lingkungan pengembangan Linux ini. Build Windows dan pemeriksaan kode lulus; checklist perangkat Windows ada di `docs/VALIDATION.md`.
-
-Lisensi MIT. Proyek independen, tidak berafiliasi dengan Apple.
+Kode berlisensi **[MIT](LICENSE)**. Proyek independen, tidak berafiliasi dengan Apple.

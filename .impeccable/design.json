@@ -163,6 +163,11 @@
         "name": "notch-content-reveal",
         "value": "smoothstep; compact progress 0.02–0.30, expanded 0.20–0.92; vertical offset 6px → 0px",
         "purpose": "Crossfade between stable-width compact and expanded content under the silhouette mask, without reflow or a late content swap."
+      },
+      {
+        "name": "header-wheel-step",
+        "value": "32 logical points; 220ms cooldown; 250ms gesture expiry",
+        "purpose": "Accumulate small trackpad deltas and switch tabs only while the pointer is over the expanded header; page-content scrolling remains local."
       }
     ],
     "breakpoints": []

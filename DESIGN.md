@@ -164,7 +164,7 @@ Compact mode shows the logo, current focus timer or media title, and battery inf
 
 ### Navigation
 
-Media, Fokus, Sistem, and Atur share a single row. Selected tabs use mint text and icons on raised charcoal. Hover adds the raised surface; keyboard focus also adds a mint inner outline (1 logical point).
+Media, Fokus, Sistem, and Atur share a single row. Selected tabs use mint text and icons on raised charcoal. Raw wheel input over the header cycles the four tabs, with a 32-point threshold and 220 ms cooldown; leaving the header discards partial input. Wheel input in page content never changes tabs. Hover adds the raised surface; keyboard focus also adds a mint inner outline (1 logical point).
 
 ### Buttons and duration chips
 
@@ -172,7 +172,7 @@ The focus action uses mint with black text. Header, reset, and transport icon bu
 
 ### Timer, metrics, and media
 
-The focus timer is centered and monospace. System metrics pair a muted label with a right-aligned monospace value and shared progress strip. Progress fill is clamped to the track width. Media empty/error states state what is available and provide an action or explanation; unavailable battery data is labelled explicitly. The release does not substitute sample content.
+The focus timer is centered and monospace. System metrics pair a muted label with a right-aligned monospace value and shared progress strip. A short text-only loading state appears while the CPU baseline warms; readings run every two seconds only while the System page is open. Progress fill is clamped to the track width. Media empty/error states state what is available and provide an action or explanation; unavailable battery data is labelled explicitly. The release does not substitute sample content.
 
 ### Portable component previews
 

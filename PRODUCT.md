@@ -21,3 +21,7 @@ Implementation assumptions: media transport through Windows system media session
 
 ## Operating Context
 Windows 10 version 1809 or newer / Windows 11, desktop session, multiple DPI scales and monitors. Settings belong to the current user. Media requires a player that exposes a Windows media session.
+
+## Reference Follow-up
+
+The user requested a review of lucacadalora/poni and its README. Luma 0.1.2 adopts header-wheel navigation, demand-driven system sampling, and a clearer README/gallery structure while retaining its own black/mint visual system. Source review and attribution are recorded in docs/REFERENCE_PONI.md.

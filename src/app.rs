@@ -3,6 +3,7 @@ use crate::{
     focus::{FocusTimer, Phase},
     icons::{self, Icon},
     motion::Expansion,
+    navigation::HeaderWheel,
     platform::{self, Action, Media, MediaBridge, MediaCommand},
     telemetry::{self, Snapshot},
 };
@@ -12,7 +13,6 @@ use eframe::egui::{
 };
 use std::{
     path::PathBuf,
-    sync::mpsc,
     time::{Duration, Instant},
 };
 
@@ -33,6 +33,14 @@ enum Tab {
     Settings,
 }
 
+impl Tab {
+    fn step(self, forward: bool) -> Self {
+        let tabs = [Self::Media, Self::Focus, Self::System, Self::Settings];
+        let current = tabs.iter().position(|tab| *tab == self).unwrap_or(0);
+        tabs[(current + if forward { 1 } else { tabs.len() - 1 }) % tabs.len()]
+    }
+}
+
 pub struct NotchApp {
     settings: Settings,
     settings_path: Option<PathBuf>,
@@ -47,7 +55,8 @@ pub struct NotchApp {
     timer: FocusTimer,
     last_tick: Instant,
     snapshot: Snapshot,
-    system_rx: mpsc::Receiver<Snapshot>,
+    monitor: telemetry::Monitor,
+    header_wheel: HeaderWheel,
     bridge: MediaBridge,
     media: Media,
     integration: Option<platform::DesktopIntegration>,
@@ -118,7 +127,8 @@ impl NotchApp {
             tab: Tab::Media,
             last_tick: Instant::now(),
             snapshot: Snapshot::default(),
-            system_rx: telemetry::spawn(),
+            monitor: telemetry::spawn(),
+            header_wheel: HeaderWheel::default(),
             bridge: platform::media_bridge(),
             media: Media::default(),
             integration,
@@ -220,10 +230,11 @@ impl NotchApp {
     }
 
     fn expanded_ui(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
+        let header = ui.horizontal(|ui| {
             let (r, _) = ui.allocate_exact_size(vec2(22.0, 24.0), Sense::hover());
             icons::logo(ui.painter(), r.center(), ACCENT);
-            ui.label(RichText::new("Luma").size(17.0).strong());
+            ui.label(RichText::new("Luma").size(17.0).strong())
+                .on_hover_text("Gulir header untuk pindah halaman");
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if icon_button(ui, Icon::Chevron, "Tutup panel · Esc", false, true).clicked() {
                     self.collapse();
@@ -245,6 +256,21 @@ impl NotchApp {
                 }
             });
         });
+        let over_header = ui.input(|input| {
+            input
+                .pointer
+                .hover_pos()
+                .is_some_and(|p| header.response.rect.contains(p))
+        });
+        if self.expanded && over_header {
+            let delta = ui.input(|input| input.raw_scroll_delta.y);
+            if let Some(forward) = self.header_wheel.input(delta, Instant::now()) {
+                self.tab = self.tab.step(forward);
+                self.hover_opened = false;
+            }
+        } else {
+            self.header_wheel.leave();
+        }
         ui.add_space(12.0);
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
@@ -514,6 +540,14 @@ impl NotchApp {
     }
 
     fn system_ui(&mut self, ui: &mut egui::Ui) {
+        if !self.snapshot.metrics_ready {
+            ui.add_space(36.0);
+            ui.label(RichText::new("Menyiapkan pembacaan…").size(18.0));
+            ui.label(
+                RichText::new("CPU dan memori dibaca saat halaman Sistem terbuka.").color(MUTED),
+            );
+            return;
+        }
         metric(
             ui,
             "Prosesor",
@@ -559,7 +593,7 @@ impl NotchApp {
         }
         ui.add_space(18.0);
         ui.label(
-            RichText::new("Diperbarui setiap 2 detik · data perangkat ini")
+            RichText::new("Diperbarui setiap 2 detik saat halaman ini terbuka")
                 .size(11.0)
                 .color(MUTED),
         );
@@ -657,7 +691,7 @@ impl eframe::App for NotchApp {
                 platform::completion_sound();
             }
         }
-        while let Ok(snapshot) = self.system_rx.try_recv() {
+        while let Ok(snapshot) = self.monitor.updates.try_recv() {
             self.snapshot = snapshot;
         }
         while let Ok(media) = self.bridge.updates.try_recv() {
@@ -832,6 +866,15 @@ impl eframe::App for NotchApp {
                 }
             });
         self.motion.retarget(self.expanded);
+        if self
+            .monitor
+            .set_active(self.expanded && self.tab == Tab::System)
+            && self.expanded
+            && self.tab == Tab::System
+        {
+            self.snapshot.metrics_ready = false;
+            ctx.request_repaint();
+        }
         if !self.expanded && self.motion.is_active() {
             ctx.memory_mut(|memory| {
                 if let Some(focused) = memory.focused() {
