@@ -56,11 +56,13 @@ Sela stays on top, without a window frame or taskbar button. The tray provides a
 
 **Windows 10 version 1809 or later / Windows 11, x64**, with an OpenGL 2.0+ driver.
 
-1. Extract the portable **Sela-windows-x64-v0.2.0.zip** supplied with the project, or download the **Sela-windows-x64** artifact from GitHub Actions.
-2. Run **`sela-notch.exe`**.
+1. Open the **[latest GitHub Release](https://github.com/YosuaPWH/sela/releases/latest)** and download **`Sela-<version>-setup-x64.exe`**.
+2. Run the installer, then open **Sela** from the Start Menu.
 3. Hover over the notch briefly, click it, or press **`Ctrl+Alt+N`**. Play music in a player that supports Windows media controls.
 
-No installer or administrator privileges are required. The app is unsigned and does not add itself to Windows startup automatically.
+For portable use, extract **`Sela-<version>-windows-x64.zip`** and run **`sela-notch.exe`**, or download the standalone executable from the same release. **`SHA256SUMS.txt`** provides hashes for all three files.
+
+The installer runs for the current user, provides a Start Menu shortcut and uninstaller, and does not require administrator privileges. The app and installer are unsigned. Sela does not add itself to Windows startup automatically.
 
 ```powershell
 .\sela-notch.exe --expanded
@@ -102,7 +104,9 @@ cargo build --locked --release
 .\target\release\sela-notch.exe
 ```
 
-See the [build guide](docs/BUILDING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). The Windows x64 cross-build, formatting, Clippy, and 22 tests passed on Linux. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
+See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). The Windows x64 cross-build, formatting, Clippy, and 22 tests passed on Linux. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
+
+Version tags such as `v0.2.0` automatically build the executable, portable ZIP, and installer, test installation/uninstallation, and publish the files to GitHub Releases. The tag must match the package version in `Cargo.toml`; see the [release guide](docs/RELEASING.md) for subsequent releases.
 
 ## Credits
 

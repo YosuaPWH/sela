@@ -69,12 +69,13 @@ Saat beranimasi, aplikasi meminta frame terus dan memakai vsync. Saat musik berj
 
 ## CI dan paket portable
 
-[Workflow Build and test](../.github/workflows/ci.yml) memiliki dua job:
+[Workflow Build, test, and release](../.github/workflows/ci.yml) memiliki tiga job:
 
-- **windows:** format, Clippy, tes, build MSVC, lalu ZIP portable berisi executable, README, lisensi, dokumentasi produk/desain, serta aset dan lisensi font.
+- **windows:** format, Clippy, tes, build MSVC dengan CRT statis, lalu executable, ZIP portable, installer Inno Setup, dan checksum. Installer dipasang/dihapus secara otomatis pada runner Windows untuk smoke test.
 - **linux-core:** tes logika dan dependensi Linux.
+- **publish:** setelah kedua job lulus pada push tag `v*`, verifikasi checksum lalu publikasikan aset ke GitHub Releases.
 
-Workflow berjalan pada push, pull request, dan eksekusi manual. Artifact bernama **Sela-windows-x64**; tidak ada publikasi release otomatis.
+Workflow berjalan pada push branch/tag versi, pull request, dan eksekusi manual. Artifact bernama **Sela-windows-x64**. Hanya push tag yang cocok dengan versi Cargo, misalnya `v0.2.0`, yang menerbitkan release. Lihat [panduan release](RELEASING.md) untuk format tag, berkas unduhan, dan build installer lokal.
 
 ## Memeriksa koneksi lirik
 
