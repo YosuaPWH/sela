@@ -42,7 +42,7 @@ A companion browser Canvas in `/workspace/sites/notch-concept-studio` presents a
 
 The native UI supplies semantic widget names to AccessKit, including the full text of clipped lyric labels. Windows Narrator behavior remains runtime-unverified.
 
-Native Linux captures at 100% and 150% show both performance styles, controls, unavailable/off states, history, benchmark/export, and retained panels. Linux can preview CPU/RAM and explicit demo data, but it does not provide Windows media, tray, hotkey, input-region, or real game-capture evidence. The new Windows DXGI/PresentMon integration probe and v0.3.0 installer CI have not yet run. Exclusive fullscreen, anti-cheat compatibility, and real game runtime require Windows device testing.
+Native Linux captures at 100% and 150% show both performance styles, controls, unavailable/off states, history, benchmark/export, and retained panels. Linux can preview CPU/RAM and explicit demo data, but it does not provide Windows media, tray, hotkey, input-region, or real game-capture evidence. The Windows MSVC build, real DXGI/PresentMon integration probe, static CRT check, packaging and install/uninstall lifecycle passed in [v0.3.0 CI](https://github.com/YosuaPWH/sela/actions/runs/40205402006). Exclusive fullscreen, anti-cheat compatibility, and real game runtime require Windows device testing.
 
 ## Reference Follow-up
 The user requested a review of `lucacadalora/poni` and its README. The earlier Luma implementation adopted header-wheel navigation, demand-driven system sampling, and README/gallery structure. Sela retains those useful behaviors within the approved sage-and-amber identity. Source review and attribution remain in `docs/REFERENCE_PONI.md`.
