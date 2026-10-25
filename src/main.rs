@@ -8,7 +8,7 @@ fn main() -> eframe::Result {
         Ok(Some(instance)) => instance,
         Ok(None) => return Ok(()),
         Err(e) => {
-            platform::startup_error(&format!("Tidak dapat memeriksa instance: {e}"));
+            platform::startup_error(&format!("Cannot check for an existing instance: {e}"));
             return Ok(());
         }
     };

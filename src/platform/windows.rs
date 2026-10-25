@@ -59,20 +59,20 @@ impl WindowRegion {
         }
         let handle = frame.window_handle().map_err(|e| e.to_string())?;
         let RawWindowHandle::Win32(handle) = handle.as_raw() else {
-            return Err("Handle window Windows tidak tersedia".into());
+            return Err("Windows window handle is unavailable".into());
         };
         let hwnd = HWND(handle.hwnd.get() as *mut _);
         unsafe {
             let region = CreateRectRgn(bounds[0], bounds[1], bounds[2], bounds[3]);
             if region.0.is_null() {
                 let _ = SetWindowRgn(hwnd, None, false);
-                return Err("Tidak dapat membuat area notch".into());
+                return Err("Cannot create the notch region".into());
             }
             // On success Windows owns the HRGN; deleting it would corrupt the window.
             if SetWindowRgn(hwnd, region, false) == 0 {
                 let _ = DeleteObject(region);
                 let _ = SetWindowRgn(hwnd, None, false);
-                return Err("Tidak dapat mengatur area notch. Mode kompatibilitas dipakai.".into());
+                return Err("Cannot set the notch region. Using compatibility mode.".into());
             }
         }
         self.last = Some(bounds);
@@ -181,7 +181,7 @@ pub fn startup_error(message: &str) {
         let _ = MessageBoxW(
             None,
             &HSTRING::from(message),
-            w!("Sela tidak dapat dibuka"),
+            w!("Sela could not start"),
             MB_OK | MB_ICONERROR,
         );
     }
@@ -238,7 +238,7 @@ fn run_command(
     } else {
         Err(Error::new(
             windows::core::HRESULT(0x80004005u32 as i32),
-            "Pemutar menolak perintah",
+            "The player rejected the command",
         ))
     }
 }
@@ -257,7 +257,7 @@ pub fn media_bridge() -> MediaBridge {
                 Ok(manager) => manager,
                 Err(e) => {
                     let _ = tx.send(Media {
-                        error: Some(format!("Akses media Windows gagal: {e}")),
+                        error: Some(format!("Windows media access failed: {e}")),
                         ..Media::default()
                     });
                     return;
@@ -271,12 +271,12 @@ pub fn media_bridge() -> MediaBridge {
                         .and_then(|s| run_command(&s, command))
                     {
                         Ok(()) => (),
-                        Err(e) => command_error = Some(format!("Kontrol media gagal: {e}")),
+                        Err(e) => command_error = Some(format!("Media control failed: {e}")),
                     }
                 }
                 let mut media = match manager.GetCurrentSession() {
                     Ok(session) => read_media(&session).unwrap_or_else(|e| Media {
-                        error: Some(format!("Tidak dapat membaca media: {e}")),
+                        error: Some(format!("Cannot read media: {e}")),
                         ..Media::default()
                     }),
                     Err(_) => Media::default(),
@@ -307,10 +307,10 @@ pub struct DesktopIntegration {
 impl DesktopIntegration {
     pub fn new() -> Result<Self, String> {
         let menu = Menu::new();
-        let toggle = MenuItem::new("Buka / tutup    Ctrl+Alt+N", true, None);
-        let focus = MenuItem::new("Timer fokus", true, None);
-        let settings = MenuItem::new("Pengaturan", true, None);
-        let quit = MenuItem::new("Keluar dari Sela", true, None);
+        let toggle = MenuItem::new("Open / close    Ctrl+Alt+N", true, None);
+        let focus = MenuItem::new("Focus timer", true, None);
+        let settings = MenuItem::new("Settings", true, None);
+        let quit = MenuItem::new("Quit Sela", true, None);
         menu.append_items(&[&toggle, &focus, &settings, &quit])
             .map_err(|e| e.to_string())?;
         let sheet = image::load_from_memory(include_bytes!("../../assets/pijar-sheet.png"))
@@ -332,10 +332,9 @@ impl DesktopIntegration {
         let hotkeys = GlobalHotKeyManager::new().map_err(|e| e.to_string())?;
         let shortcut = HotKey::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyN);
         // Shortcut conflicts must never remove the tray's recovery path.
-        let warning = hotkeys
-            .register(shortcut)
-            .err()
-            .map(|e| format!("Ctrl+Alt+N tidak tersedia: {e}. Gunakan menu tray atau klik notch."));
+        let warning = hotkeys.register(shortcut).err().map(|e| {
+            format!("Ctrl+Alt+N is unavailable: {e}. Use the tray menu or click the notch.")
+        });
         Ok(Self {
             _tray: tray,
             _hotkeys: hotkeys,

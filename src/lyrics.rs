@@ -74,19 +74,19 @@ pub enum State {
 impl State {
     pub fn compact_line(&self, position: f64) -> &str {
         match self {
-            Self::NoTrack => "Artis belum tersedia",
-            Self::Disabled => "Lirik dinonaktifkan",
-            Self::Loading => "Mencari lirik…",
-            Self::Error(_) => "Lirik gagal dimuat · buka panel",
+            Self::NoTrack => "Artist unavailable",
+            Self::Disabled => "Lyrics are off",
+            Self::Loading => "Finding lyrics…",
+            Self::Error(_) => "Lyrics couldn't load · open panel",
             Self::Ready(data) => match data {
                 Data::Synced(lines) => data
                     .active_index(position)
                     .map(|i| lines[i].text.as_str())
                     .filter(|s| !s.is_empty())
-                    .unwrap_or("Menunggu baris berikutnya…"),
-                Data::Plain(_) => "Lirik tanpa waktu · buka panel",
+                    .unwrap_or("Waiting for the next line…"),
+                Data::Plain(_) => "Untimed lyrics · open panel",
                 Data::Instrumental => "Instrumental",
-                Data::NotFound => "Lirik belum tersedia",
+                Data::NotFound => "Lyrics unavailable",
             },
         }
     }
@@ -216,24 +216,24 @@ impl Client {
             .query(&params)
             .send()
             .map_err(|_| {
-                "Tidak dapat menghubungi LRCLIB. Periksa koneksi, lalu coba lagi.".to_string()
+                "Cannot reach LRCLIB. Check your connection, then try again.".to_string()
             })?;
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
         if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            return Err("LRCLIB membatasi permintaan. Tunggu sebentar, lalu coba lagi.".into());
+            return Err("LRCLIB is limiting requests. Wait a moment, then try again.".into());
         }
         let response = response
             .error_for_status()
-            .map_err(|_| "LRCLIB sedang tidak tersedia. Coba lagi nanti.".to_string())?;
+            .map_err(|_| "LRCLIB is unavailable. Try again later.".to_string())?;
         let mut bytes = Vec::new();
         response
             .take(1_048_577)
             .read_to_end(&mut bytes)
-            .map_err(|_| "Respons lirik terputus.".to_string())?;
+            .map_err(|_| "The lyric response was interrupted.".to_string())?;
         if bytes.len() > 1_048_576 {
-            return Err("Respons lirik terlalu besar.".into());
+            return Err("The lyric response is too large.".into());
         }
         Ok(Some(bytes))
     }
@@ -242,25 +242,25 @@ impl Client {
     }
     fn lookup_checked(&self, key: &TrackKey, current: impl Fn() -> bool) -> Result<Data, String> {
         if !current() {
-            return Err("Permintaan dibatalkan".into());
+            return Err("Request canceled".into());
         }
         if key.duration > 0 {
             if let Some(bytes) = self.json("/api/get", key)? {
                 let record: Record = serde_json::from_slice(&bytes)
-                    .map_err(|_| "Format respons LRCLIB tidak valid.".to_string())?;
+                    .map_err(|_| "Invalid LRCLIB response format.".to_string())?;
                 if matches(&record, key) {
                     return Ok(data(record));
                 }
             }
         }
         if !current() {
-            return Err("Permintaan dibatalkan".into());
+            return Err("Request canceled".into());
         }
         let Some(bytes) = self.json("/api/search", key)? else {
             return Ok(Data::NotFound);
         };
         let records: Vec<Record> = serde_json::from_slice(&bytes)
-            .map_err(|_| "Format pencarian LRCLIB tidak valid.".to_string())?;
+            .map_err(|_| "Invalid LRCLIB search response.".to_string())?;
         let record = records
             .into_iter()
             .filter(|r| matches(r, key))
@@ -469,7 +469,7 @@ mod tests {
         assert_eq!(data(r), Data::Plain("words".into()));
         assert_eq!(
             State::Ready(Data::Plain("words".into())).compact_line(3.0),
-            "Lirik tanpa waktu · buka panel"
+            "Untimed lyrics · open panel"
         );
     }
     #[test]
@@ -643,6 +643,6 @@ mod tests {
             },
             || false,
         );
-        assert_eq!(result.unwrap_err(), "Permintaan dibatalkan");
+        assert_eq!(result.unwrap_err(), "Request canceled");
     }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-24T16:09:58Z",
+  "generatedAt": "2026-10-25T03:31:45Z",
   "title": "Design System: Sela",
   "extensions": {
     "colorMeta": {
@@ -202,7 +202,7 @@
       "kind": "button",
       "refersTo": "button-focus",
       "description": "Sage primary action for starting, pausing, or continuing focus.",
-      "html": "<button class=\"ds-focus\">Mulai fokus</button>",
+      "html": "<button class=\"ds-focus\">Start focus</button>",
       "css": ".ds-focus{width:160px;height:35px;padding:0 14px;border:0;border-radius:8px;background:#b8d8ba;color:#0e1110;font:400 13px \"DM Sans\",sans-serif;cursor:pointer}.ds-focus:hover{filter:brightness(.92)}.ds-focus:focus-visible{outline:1px solid #b8d8ba;outline-offset:3px}.ds-focus:active{filter:brightness(.86)}.ds-focus:disabled{opacity:.35;cursor:default}"
     },
     {
@@ -210,7 +210,7 @@
       "kind": "button",
       "refersTo": "button-play",
       "description": "The native 44-point sage transport anchor; browser hover approximates the gamma multiplier.",
-      "html": "<button class=\"ds-play\" aria-label=\"Putar\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><path d=\"M6.4 4 16 10 6.4 16Z\" fill=\"currentColor\"/></svg></button>",
+      "html": "<button class=\"ds-play\" aria-label=\"Play\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><path d=\"M6.4 4 16 10 6.4 16Z\" fill=\"currentColor\"/></svg></button>",
       "css": ".ds-play{display:grid;place-items:center;width:44px;height:44px;padding:12px;border:0;border-radius:12px;background:#b8d8ba;color:#0e1110;cursor:pointer}.ds-play:hover{filter:brightness(.86)}.ds-play:focus-visible{outline:1px solid #f3f2ec;outline-offset:2px}.ds-play:active{filter:brightness(.86)}.ds-play:disabled{opacity:.35;cursor:default}"
     },
     {
@@ -218,7 +218,7 @@
       "kind": "button",
       "refersTo": "button-icon",
       "description": "Muted previous/next and utility controls with a raised hover surface.",
-      "html": "<button class=\"ds-icon\" aria-label=\"Lagu berikutnya\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><path d=\"M4.6 4.6 14 10 4.6 15.4Z\" fill=\"currentColor\"/><path d=\"M15.6 4.6v10.8\" stroke=\"currentColor\" stroke-width=\"1.65\"/></svg></button>",
+      "html": "<button class=\"ds-icon\" aria-label=\"Next track\"><svg aria-hidden=\"true\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\"><path d=\"M4.6 4.6 14 10 4.6 15.4Z\" fill=\"currentColor\"/><path d=\"M15.6 4.6v10.8\" stroke=\"currentColor\" stroke-width=\"1.65\"/></svg></button>",
       "css": ".ds-icon{display:grid;place-items:center;width:32px;height:32px;padding:6px;border:0;border-radius:8px;background:transparent;color:#a6b2a5;cursor:pointer}.ds-icon:hover,.ds-icon:active{background:#242b27}.ds-icon:focus-visible{outline:1px solid #b8d8ba;outline-offset:-1px}.ds-icon:disabled{opacity:.35;cursor:default}"
     },
     {
@@ -226,7 +226,7 @@
       "kind": "nav",
       "refersTo": "tab-active",
       "description": "Four equal-width native tabs; the selected Media tab uses sage on raised charcoal.",
-      "html": "<nav class=\"ds-tabs\" aria-label=\"Halaman Sela\"><button aria-current=\"page\"><svg aria-hidden=\"true\" width=\"22\" height=\"22\" viewBox=\"0 0 20 20\"><path d=\"M8 14V5l8-1.6v8.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\"/><circle cx=\"5.8\" cy=\"14.6\" r=\"2.3\" fill=\"currentColor\"/><circle cx=\"13.8\" cy=\"12.8\" r=\"2.3\" fill=\"currentColor\"/></svg><span>Media</span></button><button>Fokus</button><button>Sistem</button><button>Atur</button></nav>",
+      "html": "<nav class=\"ds-tabs\" aria-label=\"Sela pages\"><button aria-current=\"page\"><svg aria-hidden=\"true\" width=\"22\" height=\"22\" viewBox=\"0 0 20 20\"><path d=\"M8 14V5l8-1.6v8.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.65\"/><circle cx=\"5.8\" cy=\"14.6\" r=\"2.3\" fill=\"currentColor\"/><circle cx=\"13.8\" cy=\"12.8\" r=\"2.3\" fill=\"currentColor\"/></svg><span>Media</span></button><button>Focus</button><button>System</button><button>Settings</button></nav>",
       "css": ".ds-tabs{display:flex;gap:4px;width:552px;padding:4px;background:#0e1110}.ds-tabs button{display:flex;align-items:center;gap:8px;flex:1;height:34px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#a6b2a5;font:400 13px \"DM Sans\",sans-serif;cursor:pointer}.ds-tabs svg{width:17px;height:17px}.ds-tabs button[aria-current=page]{background:#242b27;color:#b8d8ba}.ds-tabs button:hover,.ds-tabs button:active{background:#242b27}.ds-tabs button:focus-visible{outline:1px solid #b8d8ba;outline-offset:-1px}"
     },
     {
@@ -234,7 +234,7 @@
       "kind": "chip",
       "refersTo": "duration-selected",
       "description": "Selected focus duration; choices are disabled during a running or paused session.",
-      "html": "<div class=\"ds-durations\" role=\"group\" aria-label=\"Durasi fokus\"><button aria-pressed=\"false\">15 m</button><button aria-pressed=\"true\">25 m</button><button aria-pressed=\"false\">50 m</button></div>",
+      "html": "<div class=\"ds-durations\" role=\"group\" aria-label=\"Focus duration\"><button aria-pressed=\"false\">15 m</button><button aria-pressed=\"true\">25 m</button><button aria-pressed=\"false\">50 m</button></div>",
       "css": ".ds-durations{display:flex;gap:10px;padding:8px;background:#0e1110}.ds-durations button{padding:8px 14px;border:0;border-radius:8px;background:#0e1110;color:#a6b2a5;font:400 13px \"DM Sans\",sans-serif;cursor:pointer}.ds-durations button[aria-pressed=true]{background:#242b27;color:#b8d8ba}.ds-durations button:hover,.ds-durations button:active{background:#303a33}.ds-durations button:focus-visible{outline:1px solid #b8d8ba;outline-offset:1px}.ds-durations button:disabled{opacity:.35;cursor:default}"
     },
     {
@@ -242,7 +242,7 @@
       "kind": "custom",
       "refersTo": "progress-track",
       "description": "Muted label, monospace value, and a clamped sage progress strip.",
-      "html": "<div class=\"ds-metric\"><div class=\"ds-metric-row\"><span>Prosesor</span><strong>24%</strong></div><div class=\"ds-metric-track\" role=\"progressbar\" aria-label=\"Prosesor\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"24\"><span></span></div></div>",
+      "html": "<div class=\"ds-metric\"><div class=\"ds-metric-row\"><span>Processor</span><strong>24%</strong></div><div class=\"ds-metric-track\" role=\"progressbar\" aria-label=\"Processor\" aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"24\"><span></span></div></div>",
       "css": ".ds-metric{width:416px;padding:12px;background:#0e1110;color:#a6b2a5;font:400 13px \"DM Sans\",sans-serif}.ds-metric-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}.ds-metric-row strong{color:#f3f2ec;font:400 16px Hack,monospace}.ds-metric-track{height:3px;overflow:hidden;border-radius:2px;background:#242b27}.ds-metric-track span{display:block;width:24%;height:100%;border-radius:2px;background:#b8d8ba}"
     },
     {
@@ -250,7 +250,7 @@
       "kind": "input",
       "refersTo": "setting-checkbox",
       "description": "Browser illustration of the native egui checkbox and its data disclosure.",
-      "html": "<div class=\"ds-setting\"><label><input type=\"checkbox\" checked><span>Tampilkan lirik musik</span></label><p>Saat aktif, judul, artis, dan durasi dikirim ke LRCLIB. Lirik disimpan dalam cache lokal.</p></div>",
+      "html": "<div class=\"ds-setting\"><label><input type=\"checkbox\" checked><span>Show music lyrics</span></label><p>When enabled, the title, artist, and duration are sent to LRCLIB. Lyrics are cached locally.</p></div>",
       "css": ".ds-setting{width:380px;padding:12px;background:#0e1110;color:#f3f2ec;font:400 13px \"DM Sans\",sans-serif}.ds-setting label{display:flex;align-items:center;gap:10px;cursor:pointer}.ds-setting input{accent-color:#b8d8ba;cursor:pointer}.ds-setting input:hover{filter:brightness(1.12)}.ds-setting input:focus-visible{outline:1px solid #b8d8ba;outline-offset:3px}.ds-setting input:active{filter:brightness(.86)}.ds-setting p{margin:8px 0 0;color:#a6b2a5;font-size:11px;line-height:1.5}"
     },
     {
@@ -266,7 +266,7 @@
       "kind": "custom",
       "refersTo": "music-compact",
       "description": "580 × 54 native music silhouette, illustrated with the implemented equalizer fallback mark and original demo text.",
-      "html": "<button class=\"ds-music-pill\" aria-label=\"Buka Sela. Morning Light. Ada cahaya di sela harimu\"><svg aria-hidden=\"true\" width=\"22\" height=\"24\" viewBox=\"0 0 22 24\"><path d=\"M4 9v6M11 5v14M18 7.5v9\" stroke=\"currentColor\" stroke-width=\"3\"/></svg><span class=\"ds-pill-title\">Morning Light</span><span class=\"ds-pill-lyric\">Ada cahaya di sela harimu</span></button>",
+      "html": "<button class=\"ds-music-pill\" aria-label=\"Open Sela. Morning Light. A little light between your days\"><svg aria-hidden=\"true\" width=\"22\" height=\"24\" viewBox=\"0 0 22 24\"><path d=\"M4 9v6M11 5v14M18 7.5v9\" stroke=\"currentColor\" stroke-width=\"3\"/></svg><span class=\"ds-pill-title\">Morning Light</span><span class=\"ds-pill-lyric\">A little light between your days</span></button>",
       "css": ".ds-music-pill{display:flex;align-items:center;gap:0;width:580px;height:54px;padding:0 24px 0 19px;border:0;border-radius:0 0 24px 24px;background:#0e1110;color:#f3f2ec;text-align:left;font:400 13px \"DM Sans\",sans-serif;cursor:pointer}.ds-music-pill>svg{flex:none;margin-right:17px;color:#b8d8ba}.ds-pill-title{display:block;width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-pill-lyric{display:block;flex:1;min-width:0;margin-left:15px;border-left:1px solid #242b27;padding-left:16px;color:#f2c879;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-music-pill:hover{background:#0e1110}.ds-music-pill:focus-visible{outline:1px solid #b8d8ba;outline-offset:2px}.ds-music-pill:active{background:#0e1110}"
     },
     {
@@ -274,13 +274,13 @@
       "kind": "custom",
       "refersTo": "media-canvas",
       "description": "The 298-point fixed-left-edge lyric region with full text retained for tooltips and semantics, using explicitly labelled original demo lyrics.",
-      "html": "<section class=\"ds-lyrics\" aria-label=\"Lirik contoh\"><h3>LIRIK TERSINKRON</h3><p class=\"ds-lyric-neighbor\" title=\"Pelan saja, pagi masih panjang\">Pelan saja, pagi masih panjang</p><p class=\"ds-lyric-current\" title=\"Ada cahaya di sela harimu\">Ada cahaya di sela harimu</p><p class=\"ds-lyric-neighbor\" title=\"Satu langkah, lalu satu lagi\">Satu langkah, lalu satu lagi</p><small>Lirik contoh oleh Sela · tanpa audio</small></section>",
+      "html": "<section class=\"ds-lyrics\" aria-label=\"Sample lyrics\"><h3>SYNCED LYRICS</h3><p class=\"ds-lyric-neighbor\" title=\"Take it slow, the morning is still young\">Take it slow, the morning is still young</p><p class=\"ds-lyric-current\" title=\"A little light between your days\">A little light between your days</p><p class=\"ds-lyric-neighbor\" title=\"One small step, and then another\">One small step, and then another</p><small>Original Sela demo lyrics · no audio</small></section>",
       "css": ".ds-lyrics{width:298px;padding:0;background:#0e1110;color:#a6b2a5;font:400 13px \"DM Sans\",sans-serif;text-align:left}.ds-lyrics h3{margin:0 0 18px;font-size:10px;font-weight:400}.ds-lyrics p{margin:0 0 7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-lyric-neighbor{height:21px}.ds-lyric-current{height:26px;color:#f2c879;font-size:18px;font-weight:600}.ds-lyrics small{display:block;margin-top:22px;font-size:10px}"
     }
   ],
   "narrative": {
-    "northStar": "Sedikit ruang untukmu",
-    "overview": "Sela is a calm companion at the top of the desktop. Its charcoal silhouette gives controls a quiet home; sage marks the available action and warm amber gives the current lyric a small glow. Pijar, the approved firefly mascot, brings warmth through one restrained identity asset.\n\nThe selected visual world is already established. The Operate direction extends the working native overlay with the approved Canvas music view while retaining focus, system status, and settings. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.",
+    "northStar": "A little space for you",
+    "overview": "Sela is a calm companion at the top of the desktop. Its charcoal silhouette gives controls a quiet home; sage marks the available action and warm amber gives the current lyric a small glow. Pijar, the approved firefly mascot, brings warmth through one restrained identity asset.\n\nThe selected visual world is already established. The Operate direction extends the working native overlay with the approved Canvas music view while retaining focus, system status, and settings. The owned interface is English in version 0.2.1; the selected palette, typography, dimensions, and springs are retained. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.",
     "keyCharacteristics": [
       "A top-center charcoal silhouette with a compact resting state.",
       "Sage actions, ivory content, and an amber current lyric.",
@@ -314,7 +314,7 @@
       "**Do** preserve Sela, Pijar, and the top-center charcoal silhouette as the selected identity.",
       "**Do** use sage for primary actions and active state, and amber for the current lyric.",
       "**Do** use the embedded DM Sans faces explicitly and retain monospace numerical anchors.",
-      "**Do** keep Canvas player and lyric columns stable, with lyrics left aligned.",
+      "**Do** keep expanded player and lyric columns stable and left-align expanded lyrics; center the compact lyric within its own right-hand region.",
       "**Do** retain keyboard focus, tooltips, reduced motion, and clear unavailable states.",
       "**Do** distinguish real Windows data from explicitly labelled original demo content."
     ],

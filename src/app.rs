@@ -160,7 +160,7 @@ impl NotchApp {
                 Some(integration)
             }
             Err(e) => {
-                error = Some(format!("Tray tidak tersedia: {e}. Buka Atur untuk keluar."));
+                error = Some(format!("Tray unavailable: {e}. Open Settings to quit."));
                 None
             }
         };
@@ -361,7 +361,7 @@ impl NotchApp {
         let timer_active = matches!(self.timer.phase, Phase::Running | Phase::Paused);
         let music = self.compact_size() == MUSIC_COMPACT;
         let label = if timer_active {
-            format!("Fokus  {}", self.timer.label())
+            format!("Focus  {}", self.timer.label())
         } else if !self.media.title.is_empty() {
             self.media.title.clone()
         } else {
@@ -425,7 +425,7 @@ impl NotchApp {
                 egui::WidgetType::Button,
                 true,
                 format!(
-                    "Buka Sela. {label}. {}",
+                    "Open Sela. {label}. {}",
                     if music { &self.active_line } else { "" }
                 ),
             )
@@ -434,9 +434,9 @@ impl NotchApp {
             self.open(ui.ctx());
         }
         response.on_hover_text(if music {
-            format!("{label}\n{}\nBuka Sela · Ctrl+Alt+N", self.active_line)
+            format!("{label}\n{}\nOpen Sela · Ctrl+Alt+N", self.active_line)
         } else {
-            "Buka Sela · Ctrl+Alt+N".into()
+            "Open Sela · Ctrl+Alt+N".into()
         });
     }
 
@@ -445,18 +445,18 @@ impl NotchApp {
             let (r, _) = ui.allocate_exact_size(vec2(22.0, 24.0), Sense::hover());
             self.paint_mascot(ui.painter(), r.expand2(vec2(2.0, 5.0)));
             ui.label(RichText::new("Sela").size(17.0).font(semibold(17.0)))
-                .on_hover_text("Gulir header untuk pindah halaman");
+                .on_hover_text("Scroll over the header to switch pages");
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if icon_button(ui, Icon::Chevron, "Tutup panel · Esc", false, true).clicked() {
+                if icon_button(ui, Icon::Chevron, "Close panel · Esc", false, true).clicked() {
                     self.collapse();
                 }
                 if icon_button(
                     ui,
                     Icon::Pin,
                     if self.pinned {
-                        "Lepas pin panel"
+                        "Unpin panel"
                     } else {
-                        "Biarkan panel terbuka"
+                        "Keep panel open"
                     },
                     self.pinned,
                     true,
@@ -488,9 +488,9 @@ impl NotchApp {
             ui.spacing_mut().item_spacing.x = 4.0;
             for (tab, icon, text) in [
                 (Tab::Media, Icon::Music, "Media"),
-                (Tab::Focus, Icon::Focus, "Fokus"),
-                (Tab::System, Icon::System, "Sistem"),
-                (Tab::Settings, Icon::Settings, "Atur"),
+                (Tab::Focus, Icon::Focus, "Focus"),
+                (Tab::System, Icon::System, "System"),
+                (Tab::Settings, Icon::Settings, "Settings"),
             ] {
                 let active = self.tab == tab;
                 let (r, response) = ui.allocate_exact_size(vec2(tab_width, 34.0), Sense::click());
@@ -526,7 +526,7 @@ impl NotchApp {
                     self.tab = tab;
                     self.hover_opened = false;
                 }
-                response.on_hover_text(format!("Buka {text}"));
+                response.on_hover_text(format!("Open {text}"));
             }
         });
         ui.add_space(16.0);
@@ -543,14 +543,14 @@ impl NotchApp {
             let error = error.clone();
             ui.add_space(16.0);
             ui.label(
-                RichText::new("Media belum dapat diakses.")
+                RichText::new("Media is unavailable.")
                     .size(20.0)
                     .color(ERROR),
             );
-            ui.label("Pastikan pemutar aktif, lalu coba lagi.");
+            ui.label("Make sure your player is open, then try again.");
             ui.add(egui::Label::new(RichText::new(&error).size(12.0).color(MUTED)).truncate())
                 .on_hover_text(&error);
-            if ui.button("Coba lagi").clicked() {
+            if ui.button("Try again").clicked() {
                 self.bridge = platform::media_bridge();
                 self.media = Media::default();
             }
@@ -567,12 +567,12 @@ impl NotchApp {
             );
             ui.add_space(12.0);
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new("Ruang untuk musikmu.").size(21.0).strong());
+                ui.label(RichText::new("Room for your music.").size(21.0).strong());
                 ui.add_space(6.0);
-                ui.label(RichText::new("Putar musik di Spotify, browser, atau pemutar\nyang mendukung kontrol media Windows.").size(13.0).color(MUTED));
+                ui.label(RichText::new("Play music in Spotify, your browser, or a player\nthat supports Windows media controls.").size(13.0).color(MUTED));
                 if !cfg!(windows) {
                     ui.add_space(10.0);
-                    ui.colored_label(MUTED, "Pratinjau Linux · integrasi media tersedia di Windows");
+                    ui.colored_label(MUTED, "Linux preview · media integration is available on Windows");
                 }
             });
             return;
@@ -610,7 +610,7 @@ impl NotchApp {
                 ui.add(
                     egui::Label::new(
                         RichText::new(if self.media.artist.is_empty() {
-                            "Artis tidak tersedia"
+                            "Artist unavailable"
                         } else {
                             &self.media.artist
                         })
@@ -625,11 +625,11 @@ impl NotchApp {
         player.add_space(3.0);
         player.label(
             RichText::new(if self.demo {
-                "DEMO · DATA CONTOH"
+                "DEMO · SAMPLE DATA"
             } else if self.media.playing {
-                "SEDANG DIPUTAR"
+                "NOW PLAYING"
             } else {
-                "DIJEDA"
+                "PAUSED"
             })
             .size(10.0)
             .color(ACCENT),
@@ -661,7 +661,7 @@ impl NotchApp {
             for (icon, label, command, enabled) in [
                 (
                     Icon::Previous,
-                    "Lagu sebelumnya",
+                    "Previous track",
                     MediaCommand::Previous,
                     self.media.can_previous,
                 ),
@@ -671,13 +671,13 @@ impl NotchApp {
                     } else {
                         Icon::Play
                     },
-                    if self.media.playing { "Jeda" } else { "Putar" },
+                    if self.media.playing { "Pause" } else { "Play" },
                     MediaCommand::Toggle,
                     self.media.can_toggle,
                 ),
                 (
                     Icon::Next,
-                    "Lagu berikutnya",
+                    "Next track",
                     MediaCommand::Next,
                     self.media.can_next,
                 ),
@@ -709,7 +709,7 @@ impl NotchApp {
                             }
                         }
                     } else if self.bridge.commands.send(command).is_err() {
-                        self.error = Some("Layanan media berhenti. Mulai ulang Sela.".into());
+                        self.error = Some("The media service stopped. Restart Sela.".into());
                     }
                 }
             }
@@ -732,9 +732,9 @@ impl NotchApp {
         let synced = matches!(state, LyricState::Ready(LyricData::Synced(_)));
         ui.label(
             RichText::new(if synced {
-                "LIRIK TERSINKRON"
+                "SYNCED LYRICS"
             } else {
-                "STATUS LIRIK"
+                "LYRICS STATUS"
             })
             .size(10.0)
             .color(MUTED),
@@ -772,11 +772,11 @@ impl NotchApp {
                 ui.add_space(22.0);
                 ui.label(
                     RichText::new(if self.demo {
-                        "Lirik contoh oleh Sela · tanpa audio"
+                        "Original Sela demo lyrics · no audio"
                     } else if self.media.playing {
-                        "Mengikuti posisi pemutar · LRCLIB"
+                        "Following your player · LRCLIB"
                     } else {
-                        "Dijeda · baris tetap di sini · LRCLIB"
+                        "Paused · holding this line · LRCLIB"
                     })
                     .size(10.0)
                     .color(MUTED),
@@ -784,7 +784,7 @@ impl NotchApp {
             }
             LyricState::Ready(LyricData::Plain(text)) => {
                 ui.label(
-                    RichText::new("Lirik tanpa sinkronisasi waktu")
+                    RichText::new("Lyrics without timestamps")
                         .size(12.0)
                         .color(AMBER),
                 );
@@ -796,18 +796,23 @@ impl NotchApp {
                     });
                 ui.label(
                     RichText::new(if self.demo {
-                        "Lirik contoh oleh Sela · tanpa audio"
+                        "Original Sela demo lyrics · no audio"
                     } else {
-                        "Sumber: LRCLIB"
+                        "Source: LRCLIB"
                     })
                     .size(10.0)
                     .color(MUTED),
                 );
             }
             _ => {
+                let heading = if matches!(state, LyricState::Error(_)) {
+                    "Lyrics couldn't load"
+                } else {
+                    state.compact_line(position)
+                };
                 lyric_label(
                     ui,
-                    state.compact_line(position),
+                    heading,
                     17.0,
                     if matches!(state, LyricState::Error(_)) {
                         ERROR
@@ -818,22 +823,24 @@ impl NotchApp {
                 );
                 ui.add_space(8.0);
                 let explanation = match &state {
-                    LyricState::Disabled => "Aktifkan lirik di Atur untuk menampilkannya.",
-                    LyricState::Loading => "Mencari judul, artis, dan durasi yang cocok di LRCLIB.",
-                    LyricState::NoTrack => "Pemutar perlu menyediakan judul dan nama artis.",
+                    LyricState::Disabled => "Enable lyrics in Settings to show them.",
+                    LyricState::Loading => {
+                        "Looking for a matching title, artist, and duration on LRCLIB."
+                    }
+                    LyricState::NoTrack => "Your player needs to provide a title and artist.",
                     LyricState::Error(error) => error.as_str(),
                     LyricState::Ready(LyricData::Instrumental) => {
                         if self.demo {
-                            "Contoh lagu instrumental, tanpa lirik."
+                            "A sample instrumental track with no lyrics."
                         } else {
-                            "Lagu ini ditandai sebagai instrumental di LRCLIB."
+                            "This track is marked as instrumental on LRCLIB."
                         }
                     }
                     _ => {
                         if self.demo {
-                            "Contoh saat lirik belum tersedia. Musik tetap dapat diputar."
+                            "A sample unavailable-lyrics state. Music can still play."
                         } else {
-                            "Belum ada lirik yang cocok di LRCLIB. Musik tetap dapat diputar."
+                            "No matching lyrics on LRCLIB yet. Music can still play."
                         }
                     }
                 };
@@ -842,7 +849,7 @@ impl NotchApp {
                     state,
                     LyricState::Error(_) | LyricState::Ready(LyricData::NotFound)
                 ) && !self.demo
-                    && ui.small_button("Coba lagi").clicked()
+                    && ui.small_button("Try again").clicked()
                 {
                     self.retry_lyrics();
                 }
@@ -852,10 +859,10 @@ impl NotchApp {
 
     fn focus_ui(&mut self, ui: &mut egui::Ui) {
         let (caption, color) = match self.timer.phase {
-            Phase::Ready => ("Satu hal. Sepenuh perhatian.", MUTED),
-            Phase::Running => ("Waktunya fokus. Kamu bisa.", ACCENT),
-            Phase::Paused => ("Dijeda. Lanjutkan saat siap.", MUTED),
-            Phase::Complete => ("Sesi selesai. Ambil jeda sejenak.", ACCENT),
+            Phase::Ready => ("One thing. Your full attention.", MUTED),
+            Phase::Running => ("Time to focus. You've got this.", ACCENT),
+            Phase::Paused => ("Paused. Resume when you're ready.", MUTED),
+            Phase::Complete => ("Session complete. Take a short break.", ACCENT),
         };
         ui.vertical_centered(|ui| {
             ui.label(RichText::new(caption).size(13.0).color(color));
@@ -878,7 +885,7 @@ impl NotchApp {
                     .add_enabled(
                         enabled,
                         egui::Button::new(
-                            RichText::new(format!("{minutes} m")).color(if selected {
+                            RichText::new(format!("{minutes} min")).color(if selected {
                                 ACCENT
                             } else {
                                 MUTED
@@ -886,7 +893,7 @@ impl NotchApp {
                         )
                         .fill(if selected { SURFACE } else { BG }),
                     )
-                    .on_hover_text("Pilih durasi sesi berikutnya")
+                    .on_hover_text("Choose the duration of your next session")
                     .clicked()
                 {
                     self.settings.focus_minutes = minutes;
@@ -899,9 +906,9 @@ impl NotchApp {
         ui.horizontal(|ui| {
             ui.add_space(93.0);
             let title = match self.timer.phase {
-                Phase::Running => "Jeda fokus",
-                Phase::Paused => "Lanjutkan",
-                _ => "Mulai fokus",
+                Phase::Running => "Pause focus",
+                Phase::Paused => "Resume",
+                _ => "Start focus",
             };
             if ui
                 .add_sized(
@@ -923,15 +930,15 @@ impl NotchApp {
     fn system_ui(&mut self, ui: &mut egui::Ui) {
         if !self.snapshot.metrics_ready {
             ui.add_space(36.0);
-            ui.label(RichText::new("Menyiapkan pembacaan…").size(18.0));
+            ui.label(RichText::new("Preparing readings…").size(18.0));
             ui.label(
-                RichText::new("CPU dan memori dibaca saat halaman Sistem terbuka.").color(MUTED),
+                RichText::new("CPU and memory are sampled while System is open.").color(MUTED),
             );
             return;
         }
         metric(
             ui,
-            "Prosesor",
+            "Processor",
             &format!("{:.0}%", self.snapshot.cpu),
             self.snapshot.cpu / 100.0,
         );
@@ -944,7 +951,7 @@ impl NotchApp {
         };
         metric(
             ui,
-            "Memori",
+            "Memory",
             &format!(
                 "{:.1} / {:.1} GB",
                 gb(self.snapshot.memory_used),
@@ -957,24 +964,24 @@ impl NotchApp {
             metric(
                 ui,
                 if battery.plugged_in {
-                    "Baterai · tersambung listrik"
+                    "Battery · plugged in"
                 } else {
-                    "Baterai"
+                    "Battery"
                 },
                 &format!("{}%", battery.percent),
                 f32::from(battery.percent) / 100.0,
             );
         } else {
             ui.horizontal(|ui| {
-                ui.colored_label(MUTED, "Baterai");
+                ui.colored_label(MUTED, "Battery");
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.colored_label(MUTED, "Tidak tersedia");
+                    ui.colored_label(MUTED, "Unavailable");
                 });
             });
         }
         ui.add_space(18.0);
         ui.label(
-            RichText::new("Diperbarui setiap 2 detik saat halaman ini terbuka")
+            RichText::new("Updates every 2 seconds while this page is open")
                 .size(11.0)
                 .color(MUTED),
         );
@@ -988,21 +995,21 @@ impl NotchApp {
                 changed |= ui
                     .checkbox(
                         &mut self.settings.expand_on_hover,
-                        "Buka saat kursor menyentuh notch",
+                        "Open when the pointer hovers over the notch",
                     )
                     .changed();
                 changed |= ui
-                    .checkbox(&mut self.settings.reduced_motion, "Kurangi animasi")
+                    .checkbox(&mut self.settings.reduced_motion, "Reduce motion")
                     .changed();
-                changed |= ui.checkbox(&mut self.settings.show_mascot, "Tampilkan Pijar, maskot Sela").changed();
-                changed |= ui.checkbox(&mut self.settings.lyrics_enabled, "Tampilkan lirik musik").changed();
-                ui.label(RichText::new("Saat aktif, judul, artis, dan durasi dikirim ke LRCLIB. Lirik disimpan dalam cache lokal.").size(11.0).color(MUTED));
+                changed |= ui.checkbox(&mut self.settings.show_mascot, "Show Pijar, Sela's mascot").changed();
+                changed |= ui.checkbox(&mut self.settings.lyrics_enabled, "Show music lyrics").changed();
+                ui.label(RichText::new("When enabled, the title, artist, and duration are sent to LRCLIB. Lyrics are cached locally.").size(11.0).color(MUTED));
                 changed |= ui
-                    .checkbox(&mut self.settings.sound, "Bunyi saat sesi fokus selesai")
+                    .checkbox(&mut self.settings.sound, "Play a sound when a focus session ends")
                     .changed();
                 ui.add_space(4.0);
                 ui.horizontal(|ui| {
-                    ui.label("Jarak dari atas");
+                    ui.label("Top offset");
                     changed |= ui
                         .add(
                             egui::Slider::new(&mut self.settings.top_offset, 0.0..=80.0)
@@ -1032,7 +1039,7 @@ impl NotchApp {
                 }
                 ui.add_space(5.0);
                 ui.label(
-                    RichText::new("Ctrl+Alt+N  buka / tutup  ·  Esc  tutup")
+                    RichText::new("Ctrl+Alt+N  open / close  ·  Esc  close")
                         .size(11.0)
                         .color(MUTED),
                 );
@@ -1043,7 +1050,7 @@ impl NotchApp {
                             .color(MUTED),
                     );
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui.small_button("Keluar dari Sela").clicked() {
+                        if ui.small_button("Quit Sela").clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     });
@@ -1242,11 +1249,11 @@ impl eframe::App for NotchApp {
                     child.set_opacity(content_alpha);
                     self.expanded_ui(&mut child);
                     let footer = if self.error.is_some() {
-                        "Perlu perhatian · lihat Atur".to_owned()
+                        "Needs attention · see Settings".to_owned()
                     } else if self.timer.completed > 0 {
-                        format!("{} sesi fokus selesai", self.timer.completed)
+                        format!("Focus sessions completed: {}", self.timer.completed)
                     } else {
-                        "Sela · sedikit ruang untukmu.".into()
+                        "Sela · a little space for you.".into()
                     };
                     let footer_painter =
                         ui.painter().with_clip_rect(shape.intersect(ui.clip_rect()));
@@ -1433,12 +1440,12 @@ fn lyric_label(ui: &mut egui::Ui, text: &str, size: f32, color: Color32, strong:
 }
 
 // Original sample text. Enabled only by the explicit --demo flag; no audio or LRCLIB requests.
-const DEMO_LYRICS: &str = "[00:00]Pelan saja, pagi masih panjang\n[00:06]Ada cahaya di sela harimu\n[00:12]Satu langkah, lalu satu lagi\n[00:18]Biarkan dunia menunggu sebentar\n[00:24]Kita punya ruang untuk bernapas\n[00:30]Yang kecil pun bisa menyala\n[00:36]Simpan hangat ini sampai nanti\n[00:42]Pulanglah pada tenangmu";
+const DEMO_LYRICS: &str = "[00:00]Take it slow, the morning is still young\n[00:06]A little light between your days\n[00:12]One small step, and then another\n[00:18]Let the world wait for a moment\n[00:24]We have a little room to breathe\n[00:30]Even little things can glow\n[00:36]Keep this warmth until tomorrow\n[00:42]Find your way back to the quiet";
 fn demo_media(index: usize) -> Media {
     Media {
         title: [
             "Morning Light",
-            "Ruang kecil untuk hari yang berjalan perlahan — Sela Sessions",
+            "A little room for the days that move slowly — Sela Sessions",
             "Quiet Hours",
             "Soft Rain",
             "Little Lantern",
@@ -1458,9 +1465,9 @@ fn demo_media(index: usize) -> Media {
 
 fn demo_lyrics(index: usize) -> LyricData {
     match index % 5 {
-        1 => LyricData::Synced(lyrics::parse_lrc("[00:00]Di antara langkah yang panjang\n[00:06]Kita punya ruang kecil untuk menarik napas dan menjaga cahaya yang menyala di sela hari ini\n[00:12]Lanjutkan saat kamu siap")),
+        1 => LyricData::Synced(lyrics::parse_lrc("[00:00]Between the longer steps we take\n[00:06]We have a little room to take a breath and keep a gentle light alive in the middle of this busy day\n[00:12]Carry on when you are ready")),
         2 => LyricData::NotFound,
-        3 => LyricData::Plain("Hujan pelan di jendela\nKita berteduh sebentar\nAda tenang di antara\nHal-hal yang belum selesai".into()),
+        3 => LyricData::Plain("Soft rain against the window\nWe take shelter for a while\nThere is quiet in the spaces\nBetween the things still left to do".into()),
         4 => LyricData::Instrumental,
         _ => LyricData::Synced(lyrics::parse_lrc(DEMO_LYRICS)),
     }

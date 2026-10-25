@@ -142,11 +142,11 @@ components:
 
 ## Overview
 
-**Creative North Star: "Sedikit ruang untukmu"**
+**Creative North Star: "A little space for you"**
 
 Sela is a calm companion at the top of the desktop. Its charcoal silhouette gives controls a quiet home; sage marks the available action and warm amber gives the current lyric a small glow. Pijar, the approved firefly mascot, brings warmth through one restrained identity asset.
 
-The selected visual world is already established. The Operate direction extends the working native overlay with the approved Canvas music view while retaining focus, system status, and settings. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.
+The selected visual world is already established. The Operate direction extends the working native overlay with the approved Canvas music view while retaining focus, system status, and settings. The owned interface is English in version 0.2.1; the selected palette, typography, dimensions, and springs are retained. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.
 
 **Key Characteristics:**
 
@@ -206,7 +206,7 @@ All native sizes are logical points and scale with DPI. Center the fixed backing
 | Idle, active focus, or lyrics disabled | 324 × 48 | Pijar or mark, clock/title/focus status, available battery status |
 | Track present, lyrics enabled, no active focus | 580 × 54 | Pijar or mark, title left, current lyric right |
 | Expanded Media / backing viewport | 600 × 370 | Player and contextual lyrics |
-| Expanded Fokus, Sistem, Atur | 464 × 370 | Existing task panel |
+| Expanded Focus, System, Settings | 464 × 370 | Existing task panel |
 
 Expanded views share content insets, a header, four equal-width tabs separated by the tab-gap token, a task area, and an anchored footer. Tab widths adapt to the panel's available width; they are not a single fixed token. The settings scroll area is bounded to 207 points. These are native modes, not web breakpoints.
 
@@ -240,7 +240,7 @@ Reduced motion snaps dimensions, reveal offset, and opacity to their destination
 
 ### Navigation
 
-Media, Fokus, Sistem, and Atur share one compact tab row. Selected tabs use sage text and icons on raised charcoal; hover and keyboard focus also reveal the raised surface. Keyboard focus adds a sage inner outline (1 point). Header-wheel navigation cycles the four pages after a 32-point accumulated scroll threshold, with a 220 ms cooldown and 250 ms gesture expiry. Leaving the header discards partial input; content scrolling remains local.
+Media, Focus, System, and Settings share one compact tab row. Selected tabs use sage text and icons on raised charcoal; hover and keyboard focus also reveal the raised surface. Keyboard focus adds a sage inner outline (1 point). Header-wheel navigation cycles the four pages after a 32-point accumulated scroll threshold, with a 220 ms cooldown and 250 ms gesture expiry. Leaving the header discards partial input; content scrolling remains local.
 
 ### Buttons and duration choices
 
@@ -256,9 +256,9 @@ The eframe AccessKit feature is enabled to export egui widget names through the 
 
 The media player uses the authored note icon on the sage cover tile; it does not imply fetched album artwork. Current lyrics use amber and the explicit semibold face, while previous and next lines use muted sage. On a line change, amber text fades from 40% to full intensity over 240 ms; compact text also rises by 2 points. Reduced motion applies the new line immediately. Expanded lines remain left aligned throughout.
 
-Playback time starts from the latest system position plus monotonic elapsed time while playing and is clamped to the known duration. Pause holds the position and line; seeking or a new system position recalculates the active lyric index. The asynchronous LRCLIB worker keeps networking away from rendering and rejects stale results. Synced lyrics, plain unsynced lyrics, instrumental, loading, missing metadata, not found, error, and disabled states each state what is available. Error and not-found states offer retry; source notes identify LRCLIB.
+Playback time starts from the latest system position plus monotonic elapsed time while playing and is clamped to the known duration. Pause holds the position and line; seeking in the external player or a new system position recalculates the active lyric index. The native progress strip remains read-only. The asynchronous LRCLIB worker keeps networking away from rendering and rejects stale results. Synced lyrics, plain unsynced lyrics, instrumental, loading, missing metadata, not found, error, and disabled states each state what is available. Error and not-found states offer retry; source notes identify LRCLIB. The expanded error heading reads “Lyrics couldn't load”; the compact version adds “· open panel” as an action cue.
 
-Normal launch uses real Windows sessions and explanatory empty states. Explicit demo mode labels original sample data and states that its lyrics have no audio. Previous/Next cycles five local fixtures: synced lyrics, long text, not found, plain lyrics, and instrumental. Demo makes no LRCLIB requests, including retry.
+Normal launch uses real Windows sessions and explanatory empty states, with “NOW PLAYING” / “PAUSED” and LRCLIB captions. Explicit demo mode uses the separate “DEMO · SAMPLE DATA” and “Original Sela demo lyrics · no audio” captions. Owned labels, tooltips, semantic names, and error copy are English; player metadata and real lyrics keep their source language. Previous/Next cycles five local fixtures: synced lyrics, long text, not found, plain lyrics, and instrumental. Demo makes no LRCLIB requests, including retry.
 
 ### Focus and system readings
 
@@ -275,7 +275,7 @@ The focus timer remains centered and monospace, with shared progress and duratio
 - **Do** preserve Sela, Pijar, and the top-center charcoal silhouette as the selected identity.
 - **Do** use sage for primary actions and active state, and amber for the current lyric.
 - **Do** use the embedded DM Sans faces explicitly and retain monospace numerical anchors.
-- **Do** keep Canvas player and lyric columns stable, with lyrics left aligned.
+- **Do** keep expanded player and lyric columns stable and left-align expanded lyrics; center the compact lyric within its own right-hand region.
 - **Do** retain keyboard focus, tooltips, reduced motion, and clear unavailable states.
 - **Do** distinguish real Windows data from explicitly labelled original demo content.
 

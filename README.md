@@ -21,6 +21,8 @@ Charcoal, sage, and amber keep the panel quiet. Width and height use continuous 
 
 <sub>The gallery shows the Rust app running on Linux. Music and lyrics in these images use original demo data without audio. Windows integration still requires testing on a Windows device; see the <a href="docs/VALIDATION.md">validation evidence and limits</a>.</sub>
 
+[Explore every panel in the interactive Canvas preview](https://notch-concept-studio.yosuah.chatgpt.site) (owner-only), including compact modes, playback states, Focus, System, Settings, and the tray menu.
+
 ## Music and lyrics
 
 <p align="center"><img src="docs/screenshots/sela-compact-150.png" width="600" alt="Collapsed notch with a left-aligned song title and one centered lyric line in the right-hand area"></p>
@@ -35,14 +37,14 @@ Lyrics come from [LRCLIB](https://lrclib.net). Availability, content, and timing
 
 ## Room to work
 
-The app currently uses Indonesian interface labels. Their English meanings are included below.
+The interface uses English. Track metadata and real lyrics retain the language provided by your player or LRCLIB.
 
 | Page | What it does |
 | --- | --- |
 | **Media** | Windows music controls and lyrics in a 600×370 panel, or a 580×54 collapsed music notch. |
-| **Focus (`Fokus`)** | Sessions of 15, 25, or 50 minutes, with pause, resume, reset, and an optional completion sound. An active focus countdown takes priority in the collapsed notch. |
-| **System (`Sistem`)** | CPU and RAM readings every 2 seconds while the page is open, plus battery and power status when available. |
-| **Settings (`Atur`)** | Monitor, top offset, hover, reduced motion, sound, lyrics, and mascot preferences. Settings are stored locally. |
+| **Focus** | Sessions of 15, 25, or 50 minutes, with pause, resume, reset, and an optional completion sound. An active focus countdown takes priority in the collapsed notch. |
+| **System** | CPU and RAM readings every 2 seconds while the page is open, plus battery and power status when available. |
+| **Settings** | Monitor, top offset, hover, reduced motion, sound, lyrics, and mascot preferences. Settings are stored locally. |
 
 | Focus | System |
 | --- | --- |
@@ -83,13 +85,13 @@ Demo mode is labelled and uses no audio or LRCLIB requests. Previous/Next cycles
 | Open on hover | Keep the pointer over the notch for about 240 ms |
 | Switch pages | Click a tab or scroll over the header |
 | Keep a hover-opened panel visible | Click the pin |
-| Exit | Tray menu, or **Settings (`Atur`) → `Keluar dari Sela`**; scroll down in Settings |
+| Exit | Tray menu, or **Settings → Quit Sela**; scroll down in Settings |
 
-Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion (`Kurangi animasi`)** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority in collapsed mode.
+Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority in collapsed mode.
 
 ## Data and connectivity
 
-Sela has no accounts or telemetry. Player metadata and system statistics are read from your device. **When lyrics are enabled**, the track title, artist, and duration are sent to LRCLIB over HTTPS. Turn off **Settings (`Atur`) → `Tampilkan lirik musik`** to stop new lookups. An in-flight request may finish its connection, but its result will be ignored.
+Sela has no accounts or telemetry. Player metadata and system statistics are read from your device. **When lyrics are enabled**, the track title, artist, and duration are sent to LRCLIB over HTTPS. Turn off **Settings → Show music lyrics** to stop new lookups. An in-flight request may finish its connection, but its result will be ignored.
 
 - Successful lyric results are cached locally for 30 days; not-found results for 1 day. Connection failures are not cached. A valid cache entry can be used offline.
 - Settings: `%APPDATA%\Sela\Sela\config\settings.json`. Cache: `%LOCALAPPDATA%\Sela\Sela\cache\lyrics`.

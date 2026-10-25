@@ -111,7 +111,7 @@ pub fn completion_sound() {}
 
 #[cfg(not(windows))]
 pub fn startup_error(message: &str) {
-    eprintln!("Sela tidak dapat dibuka: {message}");
+    eprintln!("Sela could not start: {message}");
 }
 
 #[cfg(not(windows))]

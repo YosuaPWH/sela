@@ -1,59 +1,46 @@
-# Validasi Sela 0.2.0
+# Sela validation
 
-Dijalankan pada 24 Oktober 2026 di Linux x64, Rust 1.99.1. Cross-build Windows memakai `x86_64-pc-windows-gnu` dan MinGW GCC 14-posix. CI Windows MSVC tersedia, belum dijalankan dari lingkungan ini.
+## English interface — 0.2.1, 25 October 2026
 
-## Pemeriksaan otomatis
+All app-owned interface strings are English: navigation, controls, settings, tooltips, tray actions, startup messages, and recovery states. Original demo tracks and lyrics are English. Real player metadata and LRCLIB lyrics retain their source language.
 
-| Pemeriksaan | Hasil |
+| Check | Result |
 | --- | --- |
-| `cargo fmt --all -- --check` | Lulus |
-| `cargo clippy --locked --all-targets -- -D warnings` | Lulus |
-| `cargo clippy --locked --target x86_64-pc-windows-gnu --all-targets -- -D warnings` | Lulus |
-| `cargo test --locked --all-targets` | 22 tes lulus |
-| `cargo build --locked --release --target x86_64-pc-windows-gnu` | Lulus; PE32+ x64, subsystem Windows GUI |
+| `cargo fmt --all -- --check` | Passed |
+| `cargo clippy --all-targets --locked -- -D warnings` | Passed |
+| `cargo test --locked` | 22 tests passed |
+| `cargo build --locked` | Passed on Linux x64 |
+| Native English interface | 27 captures across Media, Focus, System, Settings, and compact states at 100% and 150% scale |
+| Compact lyric alignment | Six captures of short, truncated, and unavailable lyrics at 100%/150%; text centers within 0.5 physical pixel of the lyric area's center |
+| Interactive Canvas | State and interaction checks at 1440, 900, and 390 px; no JavaScript errors or page overflow |
 
-Tes mencakup timer, konfigurasi lama/rusak, parser LRC dengan timestamp berulang dan offset, indeks lirik saat seek mundur, pemisahan plain/synced, pencocokan artis/durasi, pengabaian hasil usang, pembatalan sebelum jaringan, cache korup/kedaluwarsa/salah track, URL encoding, serta fallback HTTP 404→search. Provider dites melalui server HTTP lokal.
+The Canvas includes all four panels, compact music/clock/focus modes, and a tray-menu approximation. Checks cover playback pause, previous/next, lyric retry across panel switches, persistent focus state, preferences, zoom, quit/relaunch, loaded fonts, and keyboard-operable HTML controls. The preview uses original sample tracks and illustrative system values. It plays no audio and does not connect to Windows or LRCLIB.
 
-Posisi media diuji tetap ketika dijeda, maju dengan waktu monotonik, menerima seek mundur, membatasi durasi, dan menangani nilai tidak valid. Spring diuji pada simulasi 30/60/144 Hz serta retarget dan mode kurangi animasi. Ini pengujian matematika gerak, bukan benchmark FPS Windows.
+Native captures run in Xvfb with software OpenGL and xcompmgr. They establish Linux rendering and layout, not Windows desktop integration. Current gallery images use the `screenshots/sela-*` prefix. The title and expanded lyrics remain left-aligned; compact lyrics are centered within their own area to the right of the title.
 
-## Koneksi nyata
+An independent finish review resolved all three findings: first-draw font loading, contextual expanded error wording, and matching keyboard-operable HTML actions. The targeted recheck passed at all three browser widths.
 
-`cargo run --locked --example lyrics_probe -- "Never Gonna Give You Up" "Rick Astley" 213` berhasil mengakses LRCLIB lewat HTTPS dan menerima satu baris tersinkron pada data sumber saat pengujian. Jumlah/isi respons berasal dari provider dan dapat berubah. Isi lirik komersial tidak dimasukkan ke galeri atau paket distribusi. Pengujian ini membuktikan jalur HTTPS dari Linux, bukan kualitas katalog LRCLIB atau konektivitas Windows.
+## Existing functional coverage
 
-## Pratinjau native
+The 22 tests cover focus timing, legacy and malformed configuration, LRC repeated timestamps and offsets, backward lyric seeking, plain/synced distinctions, artist/duration matching, stale-result rejection, pre-network cancellation, corrupt/expired/wrong-track caches, URL encoding, and HTTP 404-to-search fallback. Provider tests use a local HTTP server.
 
-Aplikasi Rust eframe dijalankan di Xvfb 1440×900 dengan OpenGL software dan compositor xcompmgr. Capture Sela memakai skala 100% dan 150%; track demo diberi label dan memakai lirik orisinal tanpa audio/jaringan.
+Media-clock tests cover pause, monotonic progress, backward seeks, duration bounds, and invalid inputs. Spring tests simulate 30/60/144 Hz, retargeting, reversal, and reduced motion. These are mathematical checks, not Windows FPS benchmarks. Telemetry tests verify on-demand warm-up and stopping after the System page closes.
 
-- Panel Media dan notch ringkas dicapture pada 100%/150%: 600×370 dan 580×54 logical points.
-- Lirik ringkas saat jeda menghasilkan framebuffer yang sama selama dua detik.
-- Track demo mencakup lirik tersinkron, judul/baris panjang dengan elipsis, lirik kosong, plain text, dan instrumental.
-- Sakelar lirik memakai pill pendek 324×48; kurangi animasi menampilkan geometri akhir. Pengaturan tersimpan dan dibaca kembali saat restart.
-- Fokus, Sistem, Atur, dan keadaan media kosong dicapture; CPU/RAM adalah data mesin pengembangan.
-- Lebar dan tinggi memakai spring terpisah; permukaan native tetap 600×370 dan isi panel dilayout pada lebar akhir. Pijar di-decode dari 30% kiri lembar aset agar tidak melampaui batas minimum tekstur GL 2.0.
+In the earlier 0.2.0 check, a Linux HTTPS probe reached LRCLIB and received synchronized lyrics. Catalog content and availability can change; commercial lyrics were not included in the gallery or distribution. A Windows GNU release cross-build and Clippy passed, and static imports contained only Windows system DLLs. AccessKit is enabled; the executable imports `uiautomationcore.dll`.
 
-Galeri terkini berada di `screenshots/sela-*`. Screenshot merupakan bukti UI Linux. Media WinRT, tray, global hotkey, mutex, baterai Windows, dan area input native tidak aktif pada Linux.
+The published 0.2.0 release also passed the GitHub Windows MSVC build, static-runtime dependency check, Inno Setup packaging, and automated install/uninstall lifecycle check. The tag workflow repeats these checks for each release and publishes an installer, portable ZIP, executable, and checksums after both Windows and Linux jobs pass.
 
-AccessKit diaktifkan dalam build agar nama dan peran widget diekspor ke aksesibilitas native. Baris lirik memakai galley satu baris pada tepi kiri yang tetap, dengan teks lengkap di tooltip dan informasi semantik.
+## Windows desktop checks still requiring a device
 
-## Pemeriksaan akhir
+- [ ] Top-center positioning, transparency, Pijar tray icon, and no taskbar button.
+- [ ] Narrator reading tabs, transport controls, titles, and lyrics.
+- [ ] `Ctrl+Alt+N`, every tray action, quitting, and single-instance protection including the legacy Luma instance.
+- [ ] Real Spotify/browser metadata and transport; switching players or tracks must not preserve stale lyrics.
+- [ ] Lyrics through pause, resume, forward/backward seek, end of track, and sleep/resume.
+- [ ] LRCLIB HTTPS, offline cache, connection failure, retry, and disabling lyrics.
+- [ ] Click-through outside the native region during width changes, reversals, and DPI changes.
+- [ ] Animation performance at 60/120/144 Hz and idle CPU use.
+- [ ] Completion sound, battery readings, legacy settings, and persistence after restart.
+- [ ] DPI 100/125/150/200%, secondary/negative-coordinate monitors, monitor removal, fullscreen, and remote desktop.
 
-Review terpisah menemukan alignment lirik dan fitur ekspor aksesibilitas yang belum aktif. Kedua perbaikan dinilai **resolved**, dengan disposition **ship** pada cakupan implementasi/pratinjau native yang diperiksa. Verdict terakhir hanya memeriksa dua koreksi itu, bukan sertifikasi integrasi Windows. Capture tersinkron, teks panjang, dan fallback diperbarui pada 100%/150%; `cargo tree` mengonfirmasi AccessKit dan executable mengimpor `uiautomationcore.dll`. Pemeriksaan statis import DLL menunjukkan hanya DLL sistem Windows, tanpa DLL MinGW terpisah.
-
-## Penyesuaian lirik ringkas — 25 Oktober 2026
-
-Lirik saat panel ditutup kini rata tengah di area kanan judul; judul dan lirik pada panel terbuka tetap rata kiri. Capture native Linux pada 100%/150% memeriksa teks pendek, teks panjang dengan elipsis, dan pesan lirik belum tersedia. Titik tengah piksel teks berada dalam 0,5 physical pixel dari titik tengah area lirik pada enam capture; tidak ada teks melewati pembatas. Clipping, fade 240 ms, dan pergeseran vertikal tetap dipertahankan. `cargo fmt`, `cargo check`, build Linux, dan Clippy lulus.
-
-## Checklist runtime Windows yang belum dijalankan
-
-- [ ] Posisi atas-tengah, transparansi, tray Pijar, dan tidak adanya tombol taskbar.
-- [ ] Windows Narrator membaca tab, tombol transport, judul, dan lirik dengan benar.
-- [ ] `Ctrl+Alt+N`, semua tindakan tray, keluar aplikasi, dan pencegahan instance ganda (termasuk Luma lama).
-- [ ] Metadata/transport Spotify dan browser sesuai kemampuan sesi Windows; pergantian pemutar atau lagu tidak mempertahankan lirik lama.
-- [ ] Lirik mengikuti pause, resume, seek maju/mundur, akhir lagu, dan sleep/resume pada sesi media nyata.
-- [ ] HTTPS LRCLIB, cache offline, koneksi gagal, retry, dan penonaktifan lirik berfungsi pada Windows.
-- [ ] Area di luar region meneruskan klik, termasuk saat perubahan lebar, pembalikan animasi, dan perubahan DPI.
-- [ ] Performa animasi pada 60/120/144 Hz; belum ada benchmark FPS atau idle CPU.
-- [ ] Timer selesai/bunyi, baterai, pengaturan lama, dan penyimpanan setelah restart.
-- [ ] DPI 100/125/150/200%, monitor kedua/koordinat negatif, pencabutan monitor, fullscreen, dan remote desktop.
-
-Catatan historis 0.1.x berada di [arsip validasi Luma](archive/VALIDATION-0.1.2.md). GIF lama dan gambar tanpa prefiks `sela-` adalah bukti versi tersebut, bukan tampilan Sela 0.2.0.
+Historical 0.1.x evidence is in the [Luma validation archive](archive/VALIDATION-0.1.2.md). The older GIF and screenshots without the `sela-` prefix show that earlier interface.

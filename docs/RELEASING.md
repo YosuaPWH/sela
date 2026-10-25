@@ -1,6 +1,6 @@
 # Releasing Sela
 
-A pushed version tag such as `v0.2.0` builds and publishes a GitHub Release automatically. The numeric version must match the `sela-notch` package version in `Cargo.toml`. Prerelease versions such as `0.3.0-rc.1` use matching tags such as `v0.3.0-rc.1` and are marked as prereleases.
+A pushed version tag such as `v0.2.1` builds and publishes a GitHub Release automatically. The numeric version must match the `sela-notch` package version in `Cargo.toml`. Prerelease versions such as `0.3.0-rc.1` use matching tags such as `v0.3.0-rc.1` and are marked as prereleases.
 
 ## Published files
 
@@ -20,11 +20,11 @@ The app and installer are currently unsigned. The installer requires Windows 10 
 3. Create and push an annotated tag:
 
    ```bash
-   git tag -a v0.2.0 -m "Sela v0.2.0"
-   git push origin v0.2.0
+   git tag -a v0.2.1 -m "Sela v0.2.1"
+   git push origin v0.2.1
    ```
 
-   For subsequent releases, replace `0.2.0` with the new package version.
+   For subsequent releases, replace `0.2.1` with the new package version.
 4. Open **Actions → Build, test, and release**. After the tag run succeeds, the files appear under **Releases**.
 
 Only a `push` of a matching `v*` tag publishes a release. Branch pushes, pull requests, and manual workflow runs build and test the distribution without publishing. Updating an existing tag is not a release mechanism; publish a new version instead.
@@ -49,7 +49,7 @@ On Windows, install Rust, Visual Studio Build Tools with the C++ workload, the W
 ```powershell
 $env:RUSTFLAGS = '-C target-feature=+crt-static'
 cargo build --locked --release --target x86_64-pc-windows-msvc
-./scripts/package-windows.ps1 -Version 0.2.0
+./scripts/package-windows.ps1 -Version 0.2.1
 ```
 
 Files are written to `dist/release`. Packaging alone does not install the app. `scripts/test-installer.ps1` is a separate integration test for a clean Windows user profile; it refuses to run if Sela is already registered as installed.

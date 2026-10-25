@@ -43,30 +43,32 @@ impl Settings {
         match fs::read(path) {
             Ok(bytes) => {
                 let mut settings: Self = serde_json::from_slice(&bytes).map_err(|e| {
-                    format!("Pengaturan rusak: {e}. Default dipakai; file asli tetap ada.")
+                    format!(
+                        "Invalid settings: {e}. Using defaults; the original file is preserved."
+                    )
                 })?;
                 settings.sanitize();
                 Ok(settings)
             }
             Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(format!("Tidak dapat membaca pengaturan: {e}")),
+            Err(e) => Err(format!("Cannot read settings: {e}")),
         }
     }
 
     pub fn save(&self, path: &std::path::Path) -> Result<(), String> {
-        let parent = path.parent().ok_or("Lokasi pengaturan tidak valid")?;
+        let parent = path.parent().ok_or("Invalid settings location")?;
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         let temporary = path.with_extension("json.tmp");
         let bytes = serde_json::to_vec_pretty(self).map_err(|e| e.to_string())?;
         fs::write(&temporary, bytes).map_err(|e| e.to_string())?;
-        fs::rename(&temporary, path).map_err(|e| format!("Gagal menyimpan pengaturan: {e}"))
+        fs::rename(&temporary, path).map_err(|e| format!("Cannot save settings: {e}"))
     }
 }
 
 pub fn settings_path() -> Result<PathBuf, String> {
     directories::ProjectDirs::from("dev", "Sela", "Sela")
         .map(|p| p.config_dir().join("settings.json"))
-        .ok_or_else(|| "Folder pengaturan pengguna tidak tersedia".into())
+        .ok_or_else(|| "User settings folder is unavailable".into())
 }
 
 pub fn legacy_settings_path() -> Option<PathBuf> {
