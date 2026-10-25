@@ -86,3 +86,7 @@ cargo run --locked --example lyrics_probe -- "Never Gonna Give You Up" "Rick Ast
 ```
 
 Koneksi dibatasi 4 detik, tiap respons maksimal 1 MiB dan 10 detik. Pencarian tepat dapat diikuti pencarian fallback; keseluruhan lookup dapat memerlukan dua permintaan. Cache lirik 30 hari, hasil kosong 1 hari. HTTP error tidak di-cache. Worker mengabaikan hasil usang dan tidak memulai permintaan berikutnya setelah pembatalan; permintaan blocking yang sudah berjalan akan menyelesaikan koneksinya. TLS memakai trust store sistem melalui rustls; jangan menonaktifkan verifikasi sertifikat.
+
+## Embedded frame provider
+
+On Windows, run `./scripts/fetch-presentmon.ps1` before building. Official CI does this automatically. The pinned PresentMon executable is SHA-256 verified and embedded by `build.rs`; it is extracted to the per-user cache when capture starts. The native [performance guide](PERFORMANCE.md) describes permissions, sources, and unavailable states. `--performance-demo` is an explicit, labelled UI fixture and performs no game capture.

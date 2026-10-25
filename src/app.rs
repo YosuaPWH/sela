@@ -5,6 +5,7 @@ use crate::{
     lyrics::{self, Data as LyricData, State as LyricState},
     motion::{Dimension, Expansion},
     navigation::HeaderWheel,
+    performance::{self, LineStyle},
     platform::{self, Action, Media, MediaBridge, MediaCommand},
     telemetry::{self, Snapshot},
 };
@@ -14,6 +15,7 @@ use eframe::egui::{
 };
 use std::{
     path::PathBuf,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -28,6 +30,7 @@ const COMPACT: Vec2 = vec2(324.0, 48.0);
 const EXPANDED: Vec2 = vec2(464.0, 370.0);
 const MUSIC_COMPACT: Vec2 = vec2(580.0, 54.0);
 const CANVAS: Vec2 = vec2(600.0, 370.0);
+const PERFORMANCE_PANEL: Vec2 = vec2(600.0, 440.0);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -77,6 +80,16 @@ pub struct NotchApp {
     demo_track: usize,
     window_region: platform::WindowRegion,
     fixed_surface: bool,
+    performance: performance::Monitor,
+    performance_reading: performance::Reading,
+    performance_page: bool,
+    performance_demo: bool,
+    performance_sessions: Vec<Arc<performance::Session>>,
+    benchmark_seconds: u32,
+    export_folder: Option<PathBuf>,
+    monitor_width: f32,
+    last_passthrough: bool,
+    last_application: String,
 }
 
 impl NotchApp {
@@ -141,7 +154,7 @@ impl NotchApp {
             Ok(path) => (Some(path), None),
             Err(e) => (None, Some(e)),
         };
-        let settings = settings_path
+        let mut settings = settings_path
             .as_ref()
             .map(|p| {
                 let legacy =
@@ -152,6 +165,11 @@ impl NotchApp {
                 })
             })
             .unwrap_or_default();
+        let performance_demo = std::env::args().any(|a| a == "--performance-demo");
+        if performance_demo {
+            settings.performance_enabled = true;
+        }
+        let performance_page = settings.performance_enabled;
         let integration = match platform::DesktopIntegration::new() {
             Ok(integration) => {
                 if let Some(warning) = integration.warning() {
@@ -178,7 +196,9 @@ impl NotchApp {
         } else {
             lyrics::Selection::default()
         };
-        let initial_size = if expanded {
+        let initial_size = if settings.performance_enabled && !expanded {
+            vec2(816.0, 48.0)
+        } else if expanded {
             CANVAS
         } else if demo && settings.lyrics_enabled {
             MUSIC_COMPACT
@@ -196,7 +216,11 @@ impl NotchApp {
             pointer_left: None,
             hover_started: None,
             suppress_hover: false,
-            tab: Tab::Media,
+            tab: if performance_page {
+                Tab::System
+            } else {
+                Tab::Media
+            },
             last_tick: Instant::now(),
             snapshot: Snapshot::default(),
             monitor: telemetry::spawn(),
@@ -217,6 +241,22 @@ impl NotchApp {
             demo_track: 0,
             window_region: Default::default(),
             fixed_surface: true,
+            performance: performance::spawn(),
+            performance_reading: performance::Reading {
+                status: "Performance monitoring is off.".into(),
+                ..Default::default()
+            },
+            performance_page,
+            performance_demo,
+            performance_sessions: vec![],
+            benchmark_seconds: 30,
+            export_folder: None,
+            monitor_width: cc
+                .egui_ctx
+                .input(|i| i.viewport().monitor_size)
+                .map_or(1920.0, |v| v.x),
+            last_passthrough: false,
+            last_application: String::new(),
         }
     }
 
@@ -264,6 +304,9 @@ impl NotchApp {
     }
 
     fn compact_size(&self) -> Vec2 {
+        if self.settings.performance_enabled {
+            return vec2(816.0_f32.min((self.monitor_width - 24.0).max(320.0)), 48.0);
+        }
         if self.settings.lyrics_enabled
             && !self.media.title.is_empty()
             && !matches!(self.timer.phase, Phase::Running | Phase::Paused)
@@ -275,7 +318,11 @@ impl NotchApp {
     }
 
     fn expanded_size(&self) -> Vec2 {
-        if self.tab == Tab::Media {
+        if self.tab == Tab::System && self.performance_page {
+            PERFORMANCE_PANEL
+        } else if self.tab == Tab::System {
+            vec2(EXPANDED.x, 440.0)
+        } else if self.tab == Tab::Media {
             CANVAS
         } else {
             EXPANDED
@@ -352,6 +399,10 @@ impl NotchApp {
     }
 
     fn compact(&mut self, ui: &mut egui::Ui, shape: Rect) {
+        if self.settings.performance_enabled {
+            self.performance_line(ui, shape);
+            return;
+        }
         let origin = shape.min;
         let center_y = shape.top() + self.compact_size().y * 0.5;
         self.paint_mascot(
@@ -927,7 +978,210 @@ impl NotchApp {
         });
     }
 
+    fn performance_line(&self, ui: &mut egui::Ui, shape: Rect) {
+        let r = &self.performance_reading;
+        let h = &r.hardware;
+        let scale = shape.width() / 816.0;
+        let outlined = self.settings.performance_style == LineStyle::TextOnly;
+        let number = |n: Option<f64>, decimals: usize| {
+            n.filter(|v| v.is_finite())
+                .map_or_else(|| "—".to_owned(), |v| format!("{v:.decimals$}"))
+        };
+        let cells = [
+            (
+                "FPS",
+                number(r.frames.as_ref().map(|s| s.fps), 0),
+                74.0,
+                ACCENT,
+            ),
+            ("RAM", format!("{} GB", number(r.ram_gb, 1)), 104.0, TEXT),
+            ("VRAM", format!("{} GB", number(h.vram_gb, 1)), 110.0, TEXT),
+            (
+                "GPU",
+                format!("{}% {}°C", number(h.gpu, 0), number(h.gpu_temp, 0)),
+                126.0,
+                if h.gpu_temp.is_some_and(|v| v > 85.0) {
+                    AMBER
+                } else {
+                    TEXT
+                },
+            ),
+            (
+                "CPU",
+                format!("{}% {}°C", number(r.cpu, 0), number(h.cpu_temp, 0)),
+                126.0,
+                TEXT,
+            ),
+            (
+                "FT",
+                format!("{} ms", number(r.frames.as_ref().map(|s| s.frame_ms), 1)),
+                92.0,
+                TEXT,
+            ),
+            (
+                "1% LOW",
+                number(r.frames.as_ref().map(|s| s.low), 0),
+                104.0,
+                ACCENT,
+            ),
+        ];
+        let y = shape.top() + 24.0;
+        let label_color = if outlined { TEXT } else { MUTED };
+        outlined_text(
+            ui.painter(),
+            pos2(shape.left() + 14.0 * scale, y),
+            Align2::LEFT_CENTER,
+            if self.performance_demo {
+                "DEMO"
+            } else {
+                "Sela"
+            },
+            FontId::proportional(11.0 * scale),
+            if self.performance_demo {
+                AMBER
+            } else {
+                label_color
+            },
+            outlined,
+        );
+        let mut x = shape.left() + 66.0 * scale;
+        let mut accessible = String::from("Performance. ");
+        for (label, value, w, color) in cells {
+            outlined_text(
+                ui.painter(),
+                pos2(x, y),
+                Align2::LEFT_CENTER,
+                label,
+                FontId::proportional(10.0 * scale),
+                label_color,
+                outlined,
+            );
+            outlined_text(
+                ui.painter(),
+                pos2(x + (w - 14.0) * scale, y),
+                Align2::RIGHT_CENTER,
+                &value,
+                FontId::monospace(11.5 * scale),
+                color,
+                outlined,
+            );
+            accessible.push_str(&format!("{label}: {value}. "));
+            x += w * scale;
+        }
+        if let Some(seconds) = r.recording_seconds {
+            outlined_text(
+                ui.painter(),
+                pos2(shape.right() - 20.0, shape.top() + 42.0),
+                Align2::RIGHT_CENTER,
+                &format!("REC {seconds:.1}s"),
+                FontId::monospace(9.0 * scale),
+                AMBER,
+                outlined,
+            );
+        }
+        let response = ui.interact(shape, Id::new("performance-line"), Sense::hover());
+        response.widget_info(|| {
+            egui::WidgetInfo::labeled(egui::WidgetType::Label, true, accessible.clone())
+        });
+        response.on_hover_text(
+            "Gaming line is click-through. Ctrl+Alt+N or the tray opens its controls.",
+        );
+    }
+
+    fn performance_ui(&mut self, ui: &mut egui::Ui) {
+        let mut changed = false;
+        egui::ScrollArea::vertical().id_salt("performance-scroll").max_height(278.0).show(ui,|ui|{
+            changed|=ui.checkbox(&mut self.settings.performance_enabled,"Show gaming performance line").changed();
+            ui.horizontal(|ui|{
+                ui.label("FPS line style");
+                changed|=ui.radio_value(&mut self.settings.performance_style,LineStyle::TextOnly,"Text only").changed();
+                changed|=ui.radio_value(&mut self.settings.performance_style,LineStyle::Background,"With background").changed();
+            });
+            ui.label(RichText::new("All readings stay on one line. When closed, clicks pass through to your game; use Ctrl+Alt+N or the tray to open Sela.").size(11.0).color(MUTED));
+            let applications=self.performance_reading.applications.clone();
+            ui.horizontal(|ui|{
+                ui.label("Capture");
+                egui::ComboBox::from_id_salt("performance-process").width(240.0).selected_text(if self.settings.performance_target.is_empty(){"Foreground application"}else{&self.settings.performance_target}).show_ui(ui,|ui|{
+                    changed|=ui.selectable_value(&mut self.settings.performance_target,String::new(),"Foreground application").changed();
+                    for app in &applications {changed|=ui.selectable_value(&mut self.settings.performance_target,app.name.clone(),format!("{} · PID {}",app.name,app.pid)).changed();}
+                });
+                if ui.small_button("Retry").clicked(){self.performance.retry();}
+            });
+            if let Some(app)=&self.performance_reading.target {
+                ui.horizontal(|ui|{
+                    ui.label(RichText::new(format!("{} · PID {}",app.name,app.pid)).size(11.0).color(MUTED));
+                    if ui.small_button("Save style for this app").clicked(){self.settings.performance_profiles.insert(app.name.to_ascii_lowercase(),self.settings.performance_style);changed=true;}
+                });
+            }
+            ui.label(RichText::new(&self.performance_reading.status).size(11.0).color(if self.performance_demo {AMBER}else{MUTED}));
+            let number=|n:Option<f64>,decimals:usize|n.filter(|v|v.is_finite()).map_or_else(||"Unavailable".to_owned(),|v|format!("{v:.decimals$}"));
+            let r=&self.performance_reading;
+            ui.columns(3,|columns|{
+                for(ui,(name,value))in columns.iter_mut().zip([
+                    ("FPS",number(r.frames.as_ref().map(|s|s.fps),0)),
+                    ("1% low",number(r.frames.as_ref().map(|s|s.low),0)),
+                    ("Frame time",r.frames.as_ref().map_or_else(||"Unavailable".to_owned(),|s|format!("{:.2} ms",s.frame_ms)))
+                ]) {ui.label(RichText::new(name).size(11.0).color(MUTED));ui.label(RichText::new(value).monospace().size(21.0).color(ACCENT));}
+            });
+            let (chart,_)=ui.allocate_exact_size(vec2(ui.available_width(),58.0),Sense::hover());
+            ui.painter().rect_filled(chart,8,SURFACE);
+            let max=self.performance_reading.history.iter().copied().fold(25.0,f64::max)*1.1;
+            let values=&self.performance_reading.history;
+            if values.len()>1 {
+                let points=values.iter().enumerate().map(|(i,v)|pos2(chart.left()+i as f32/(values.len()-1)as f32*chart.width(),chart.bottom()-(*v/max)as f32*chart.height())).collect::<Vec<_>>();
+                ui.painter().add(egui::Shape::line(points,Stroke::new(1.5_f32,ACCENT)));
+            } else {ui.painter().text(chart.center(),Align2::CENTER_CENTER,"Waiting for frames",FontId::proportional(11.0),MUTED);}
+            ui.label(RichText::new("Frame time · latest 120 presents · lower is better").size(10.0).color(MUTED));
+            egui::Grid::new("performance-hardware").num_columns(4).spacing(vec2(18.0,7.0)).show(ui,|ui|{
+                for(a,av,b,bv)in [
+                    ("CPU",format!("{}%",number(r.cpu,0)),"RAM",format!("{} GB",number(r.ram_gb,1))),
+                    ("GPU",format!("{}%",number(r.hardware.gpu,0)),"VRAM",format!("{} GB",number(r.hardware.vram_gb,1))),
+                    ("GPU temp",format!("{} °C",number(r.hardware.gpu_temp,0)),"GPU power",format!("{} W",number(r.hardware.power,0))),
+                ] {ui.label(a);ui.monospace(av);ui.label(b);ui.monospace(bv);ui.end_row();}
+            });
+            ui.label(RichText::new(&r.hardware.source).size(10.0).color(MUTED));
+            ui.label(RichText::new("Frame capture may require administrator or Performance Log Users permissions. If FPS is unavailable, relaunch with the required permission and Retry.").size(10.0).color(MUTED));
+            ui.collapsing("PresentMon license",|ui|{ui.label(include_str!("../assets/licenses/PresentMon.txt"));});
+            ui.label(RichText::new("— means unavailable. Fullscreen and anti-cheat compatibility depend on the game; borderless mode is recommended.").size(10.0).color(MUTED));
+            ui.separator();
+            ui.horizontal(|ui|{
+                ui.label("Benchmark");
+                egui::ComboBox::from_id_salt("benchmark-length").selected_text(format!("{} s",self.benchmark_seconds)).show_ui(ui,|ui|{for n in [15,30,60]{ui.selectable_value(&mut self.benchmark_seconds,n,format!("{n} seconds"));}});
+                if let Some(seconds)=self.performance_reading.recording_seconds {
+                    ui.label(format!("REC {seconds:.1}s captured"));
+                    if ui.button("Finish").clicked(){self.performance.finish();}
+                } else if ui.add_enabled(self.performance_reading.frames.is_some(),egui::Button::new("Start recording")).clicked(){self.performance.start(self.benchmark_seconds);}
+            });
+            ui.label(RichText::new("Capture excludes gaps without frames. Recording finishes if its process changes or monitoring stops.").size(10.0).color(MUTED));
+            if let Some(session)=self.performance_sessions.last().cloned(){
+                ui.collapsing("Latest benchmark and comparison",|ui|{
+                    ui.label(format!("{} · {:.1} seconds · {} frames",session.application,session.captured_seconds,session.stats.frames));
+                    let previous=self.performance_sessions.iter().rev().nth(1);
+                    egui::Grid::new("benchmark-comparison").show(ui,|ui|{
+                        ui.label("Measurement");ui.label("Latest");ui.label("Previous");ui.end_row();
+                        for(name,current,old)in [("Average FPS",session.stats.fps,previous.map(|s|s.stats.fps)),("1% low",session.stats.low,previous.map(|s|s.stats.low)),("Frame time (ms)",session.stats.frame_ms,previous.map(|s|s.stats.frame_ms)),("Worst frame (ms)",session.stats.worst_ms,previous.map(|s|s.stats.worst_ms))]{ui.label(name);ui.monospace(format!("{current:.2}"));ui.monospace(number(old,2));ui.end_row();}
+                    });
+                    ui.label(RichText::new("1% low = 1000 / mean of the slowest 1% of captured frame times. Previous sessions may use different applications.").size(10.0).color(MUTED));
+                    if ui.button("Export CSV + JSON").clicked(){match session.export(){Ok(folder)=>self.export_folder=Some(folder),Err(e)=>self.error=Some(e)}}
+                });
+            }else{ui.label(RichText::new("No recorded sessions yet.").size(11.0).color(MUTED));}
+            if let Some(folder)=&self.export_folder{ui.horizontal(|ui|{ui.label("Report saved.");if ui.button("Open export folder").clicked(){if let Err(e)=performance::open_folder(folder){self.error=Some(e);}}});ui.label(RichText::new(folder.display().to_string()).size(10.0).color(MUTED));}
+        });
+        if changed {
+            self.persist();
+        }
+    }
+
     fn system_ui(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            ui.selectable_value(&mut self.performance_page, false, "System overview");
+            ui.selectable_value(&mut self.performance_page, true, "Performance");
+        });
+        ui.add_space(10.0);
+        if self.performance_page {
+            self.performance_ui(ui);
+            return;
+        }
         if !self.snapshot.metrics_ready {
             ui.add_space(36.0);
             ui.label(RichText::new("Preparing readings…").size(18.0));
@@ -1002,6 +1256,8 @@ impl NotchApp {
                     .checkbox(&mut self.settings.reduced_motion, "Reduce motion")
                     .changed();
                 changed |= ui.checkbox(&mut self.settings.show_mascot, "Show Pijar, Sela's mascot").changed();
+                changed |= ui.checkbox(&mut self.settings.performance_enabled, "Show gaming performance line").changed();
+                ui.label(RichText::new("System → Performance configures capture and line style. Ctrl+Alt+N opens the click-through gaming line.").size(11.0).color(MUTED));
                 changed |= ui.checkbox(&mut self.settings.lyrics_enabled, "Show music lyrics").changed();
                 ui.label(RichText::new("When enabled, the title, artist, and duration are sent to LRCLIB. Lyrics are cached locally.").size(11.0).color(MUTED));
                 changed |= ui
@@ -1075,8 +1331,10 @@ impl eframe::App for NotchApp {
         let elapsed = now.duration_since(self.last_tick);
         self.last_tick = now;
         if self.timer.advance(elapsed) {
-            self.tab = Tab::Focus;
-            self.expanded = true;
+            if !self.settings.performance_enabled {
+                self.tab = Tab::Focus;
+                self.expanded = true;
+            }
             self.hover_opened = false;
             if self.settings.sound {
                 platform::completion_sound();
@@ -1102,6 +1360,10 @@ impl eframe::App for NotchApp {
                         if self.expanded {
                             self.collapse();
                         } else {
+                            if self.settings.performance_enabled {
+                                self.tab = Tab::System;
+                                self.performance_page = true;
+                            }
                             self.open(ctx);
                         }
                     }
@@ -1123,7 +1385,46 @@ impl eframe::App for NotchApp {
         if !self.expanded
             && ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Space))
         {
+            if self.settings.performance_enabled {
+                self.tab = Tab::System;
+                self.performance_page = true;
+            }
             self.open(ctx);
+        }
+        while let Ok(reading) = self.performance.updates.try_recv() {
+            if let Some(session) = &reading.completed {
+                if !self.performance_sessions.iter().any(|s| s.id == session.id) {
+                    self.performance_sessions.push(session.clone());
+                    if self.performance_sessions.len() > 20 {
+                        self.performance_sessions.remove(0);
+                    }
+                }
+            }
+            let application = reading
+                .target
+                .as_ref()
+                .map(|a| a.name.to_ascii_lowercase())
+                .unwrap_or_default();
+            if !application.is_empty() && application != self.last_application {
+                if let Some(style) = self.settings.performance_profiles.get(&application) {
+                    self.settings.performance_style = *style;
+                }
+                self.last_application = application;
+            }
+            self.performance_reading = reading;
+        }
+        let ppp = ctx.pixels_per_point();
+        self.monitor_width = platform::monitor_geometry(self.settings.monitor, ppp).map_or_else(
+            || {
+                ctx.input(|i| i.viewport().monitor_size)
+                    .map_or(1920.0, |s| s.x)
+            },
+            |(_, w)| w,
+        );
+        let passthrough = self.settings.performance_enabled && !self.expanded;
+        if passthrough != self.last_passthrough {
+            ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(passthrough));
+            self.last_passthrough = passthrough;
         }
         let previous_size = vec2(self.width.value(), self.height.value());
         let previous_shape = Rect::from_min_size(
@@ -1140,7 +1441,11 @@ impl eframe::App for NotchApp {
             if self.expanded {
                 self.hover_started = None;
             }
-            if !self.expanded && self.settings.expand_on_hover && !self.suppress_hover {
+            if !self.expanded
+                && !self.settings.performance_enabled
+                && self.settings.expand_on_hover
+                && !self.suppress_hover
+            {
                 let since = self.hover_started.get_or_insert(now);
                 if now.duration_since(*since) >= Duration::from_millis(240) {
                     self.expanded = true;
@@ -1174,7 +1479,7 @@ impl eframe::App for NotchApp {
         // Windows keeps one fixed backing surface and clips its native input area.
         // Linux uses the same canvas for visual previews; native input clipping is Windows-only.
         let canvas = if self.fixed_surface || self.expanded || self.motion.is_active() {
-            CANVAS
+            vec2(840.0_f32.min(self.monitor_width.max(600.0)), 440.0)
         } else {
             size
         };
@@ -1219,7 +1524,12 @@ impl eframe::App for NotchApp {
                     sw: 24,
                     se: 24,
                 };
-                ui.painter().rect_filled(shape, radius, BG);
+                let text_only = self.settings.performance_enabled
+                    && !self.expanded
+                    && self.settings.performance_style == LineStyle::TextOnly;
+                if !text_only {
+                    ui.painter().rect_filled(shape, radius, BG);
+                }
                 if compact_alpha > 0.001 {
                     let mut compact = ui.new_child(
                         egui::UiBuilder::new()
@@ -1276,9 +1586,14 @@ impl eframe::App for NotchApp {
         let target = self.target_size();
         self.width.retarget(target.x);
         self.height.retarget(target.y);
+        self.performance.configure(performance::Configuration {
+            enabled: self.settings.performance_enabled,
+            target: self.settings.performance_target.clone(),
+            demo: self.performance_demo,
+        });
         if self
             .monitor
-            .set_active(self.expanded && self.tab == Tab::System)
+            .set_active(self.expanded && self.tab == Tab::System && !self.performance_page)
             && self.expanded
             && self.tab == Tab::System
         {
@@ -1499,4 +1814,30 @@ fn play_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) -> egu
         response.on_hover_text(label)
     })
     .inner
+}
+
+fn outlined_text(
+    painter: &egui::Painter,
+    position: egui::Pos2,
+    align: Align2,
+    text: &str,
+    font: FontId,
+    color: Color32,
+    outline: bool,
+) {
+    if outline {
+        for (x, y) in [
+            (-1.0, -1.0),
+            (0.0, -1.0),
+            (1.0, -1.0),
+            (-1.0, 0.0),
+            (1.0, 0.0),
+            (-1.0, 1.0),
+            (0.0, 1.0),
+            (1.0, 1.0),
+        ] {
+            painter.text(position + vec2(x, y), align, text, font.clone(), BG);
+        }
+    }
+    painter.text(position, align, text, font, color);
 }

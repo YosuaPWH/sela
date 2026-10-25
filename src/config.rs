@@ -12,6 +12,10 @@ pub struct Settings {
     pub monitor: usize,
     pub lyrics_enabled: bool,
     pub show_mascot: bool,
+    pub performance_enabled: bool,
+    pub performance_style: crate::performance::LineStyle,
+    pub performance_target: String,
+    pub performance_profiles: std::collections::BTreeMap<String, crate::performance::LineStyle>,
 }
 
 impl Default for Settings {
@@ -25,6 +29,10 @@ impl Default for Settings {
             monitor: 0,
             lyrics_enabled: true,
             show_mascot: true,
+            performance_enabled: false,
+            performance_style: Default::default(),
+            performance_target: String::new(),
+            performance_profiles: Default::default(),
         }
     }
 }
@@ -92,6 +100,20 @@ mod tests {
         assert_eq!(s.top_offset, 80.0);
         assert!(s.expand_on_hover);
         assert!(s.lyrics_enabled && s.show_mascot);
+        assert!(!s.performance_enabled);
+        assert_eq!(s.performance_style, crate::performance::LineStyle::TextOnly);
+        let with_profile: Settings = serde_json::from_str(
+            r#"{"performance_style":"background","performance_profiles":{"game.exe":"text_only"}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            with_profile.performance_style,
+            crate::performance::LineStyle::Background
+        );
+        assert_eq!(
+            with_profile.performance_profiles["game.exe"],
+            crate::performance::LineStyle::TextOnly
+        );
     }
 
     #[test]

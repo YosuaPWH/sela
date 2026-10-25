@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-25T03:31:45Z",
+  "generatedAt": "2026-10-25T15:00:00Z",
   "title": "Design System: Sela",
   "extensions": {
     "colorMeta": {
@@ -156,7 +156,7 @@
       {
         "name": "shell-dimensions",
         "value": "Exact critical damping; independent width and height; opening omega 32/s; closing omega 38/s",
-        "purpose": "Retain position and velocity through retargets; animate the silhouette and Win32 input region within the fixed 600 × 370 logical-point backing viewport."
+        "purpose": "Retain position and velocity through retargets; animate the silhouette and Win32 input region within the at most 840 × 440 logical-point backing viewport."
       },
       {
         "name": "shell-content-reveal",
@@ -276,11 +276,27 @@
       "description": "The 298-point fixed-left-edge lyric region with full text retained for tooltips and semantics, using explicitly labelled original demo lyrics.",
       "html": "<section class=\"ds-lyrics\" aria-label=\"Sample lyrics\"><h3>SYNCED LYRICS</h3><p class=\"ds-lyric-neighbor\" title=\"Take it slow, the morning is still young\">Take it slow, the morning is still young</p><p class=\"ds-lyric-current\" title=\"A little light between your days\">A little light between your days</p><p class=\"ds-lyric-neighbor\" title=\"One small step, and then another\">One small step, and then another</p><small>Original Sela demo lyrics · no audio</small></section>",
       "css": ".ds-lyrics{width:298px;padding:0;background:#0e1110;color:#a6b2a5;font:400 13px \"DM Sans\",sans-serif;text-align:left}.ds-lyrics h3{margin:0 0 18px;font-size:10px;font-weight:400}.ds-lyrics p{margin:0 0 7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-lyric-neighbor{height:21px}.ds-lyric-current{height:26px;color:#f2c879;font-size:18px;font-weight:600}.ds-lyrics small{display:block;margin-top:22px;font-size:10px}"
+    },
+    {
+      "name": "Performance line · Text only",
+      "kind": "custom",
+      "refersTo": "performance-line-text-only",
+      "description": "816 × 48 native metric line, text only; unavailable readings illustrate truthful empty state. The closed native line is click-through.",
+      "html": "<div class=\"ds-performance\" aria-label=\"Performance readings unavailable\"><strong>Sela</strong><span><small>FPS</small><b>—</b></span><span><small>RAM</small><b>—</b></span><span><small>VRAM</small><b>—</b></span><span><small>GPU</small><b>—</b></span><span><small>CPU</small><b>—</b></span><span><small>FT</small><b>—</b></span><span><small>1% LOW</small><b>—</b></span></div>",
+      "css": ".ds-performance{box-sizing:border-box;display:flex;align-items:center;gap:12px;width:816px;height:48px;padding:0 14px;border-radius:0 0 24px 24px;background:transparent;color:#f3f2ec;font:400 11px \"DM Sans\",sans-serif;text-shadow:-1px -1px #000,1px -1px #000,-1px 1px #000,1px 1px #000}.ds-performance>strong{color:#b8d8ba}.ds-performance>span{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:1}.ds-performance small{font-size:10px;color:#a6b2a5}.ds-performance b{font:400 11.5px Hack,monospace}"
+    },
+    {
+      "name": "Performance line · With background",
+      "kind": "custom",
+      "refersTo": "performance-line-background",
+      "description": "816 × 48 native metric line, with background; unavailable readings illustrate truthful empty state. The closed native line is click-through.",
+      "html": "<div class=\"ds-performance\" aria-label=\"Performance readings unavailable\"><strong>Sela</strong><span><small>FPS</small><b>—</b></span><span><small>RAM</small><b>—</b></span><span><small>VRAM</small><b>—</b></span><span><small>GPU</small><b>—</b></span><span><small>CPU</small><b>—</b></span><span><small>FT</small><b>—</b></span><span><small>1% LOW</small><b>—</b></span></div>",
+      "css": ".ds-performance{box-sizing:border-box;display:flex;align-items:center;gap:12px;width:816px;height:48px;padding:0 14px;border-radius:0 0 24px 24px;background:#0e1110;color:#f3f2ec;font:400 11px \"DM Sans\",sans-serif}.ds-performance>strong{color:#b8d8ba}.ds-performance>span{display:flex;align-items:center;justify-content:space-between;gap:10px;flex:1}.ds-performance small{font-size:10px;color:#a6b2a5}.ds-performance b{font:400 11.5px Hack,monospace}"
     }
   ],
   "narrative": {
     "northStar": "A little space for you",
-    "overview": "Sela is a calm companion at the top of the desktop. Its charcoal silhouette gives controls a quiet home; sage marks the available action and warm amber gives the current lyric a small glow. Pijar, the approved firefly mascot, brings warmth through one restrained identity asset.\n\nThe selected visual world is already established. The Operate direction extends the working native overlay with the approved Canvas music view while retaining focus, system status, and settings. The owned interface is English in version 0.2.1; the selected palette, typography, dimensions, and springs are retained. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.",
+    "overview": "Creative North Star: \"A little space for you\"\n\nSela is a calm companion at the top of the desktop. Its charcoal silhouette gives controls a quiet home; sage marks the available action and warm amber gives the current lyric a small glow. Pijar, the approved firefly mascot, brings warmth through one restrained identity asset.\n\nThe selected visual world is already established. Version 0.3.0 extends the working native overlay with the approved music and performance Canvas views while retaining focus and settings. The owned interface is English; performance adds explicit text-only and charcoal-background variants within the selected palette, typography, and spring behavior. This document records the implemented Rust/egui system; portable tokens use CSS pixels to represent egui logical points.\n\nKey Characteristics:\n\n- A top-center charcoal silhouette with a compact resting state.\n- Sage actions, ivory content, and an amber current lyric.\n- DM Sans Regular and Semibold, with retained monospace timer and metric values.\n- Pijar as a small identity cue beside practical native controls.\n- Stable content geometry, continuous spring motion, and truthful media and performance states.\n",
     "keyCharacteristics": [
       "A top-center charcoal silhouette with a compact resting state.",
       "Sage actions, ivory content, and an amber current lyric.",
@@ -316,7 +332,8 @@
       "**Do** use the embedded DM Sans faces explicitly and retain monospace numerical anchors.",
       "**Do** keep expanded player and lyric columns stable and left-align expanded lyrics; center the compact lyric within its own right-hand region.",
       "**Do** retain keyboard focus, tooltips, reduced motion, and clear unavailable states.",
-      "**Do** distinguish real Windows data from explicitly labelled original demo content."
+      "**Do** distinguish real Windows data from explicitly labelled original demo content.",
+      "**Do** preserve both performance styles, a single baseline, click-through recovery, and explicit unavailable/demo states."
     ],
     "donts": [
       "**Don't** reintroduce archived mascot concepts as Sela identity assets.",

@@ -1,5 +1,22 @@
 # Sela validation
 
+## Native Performance — 0.3.0, 25 October 2026
+
+| Check | Result |
+| --- | --- |
+| Formatting / Clippy / Linux build | Passed |
+| `cargo test --locked` | 27 passed |
+| Windows provider and DXGI integration-probe cross-target check / Clippy | Passed using the Windows GNU target; this does not execute the probe |
+| Workflow syntax | actionlint passed |
+| Native rendering | Both line styles and controls at 100%/150%, plus off/unavailable, recording, export, and retained panels |
+| Text-only transparency | Direct framebuffer pixel matched the underlying green window; background mode produced charcoal at the same position |
+| Benchmark export | A labelled demo recording exported 4305 frames to both CSV and JSON; counts and average-FPS calculation matched |
+| Windows MSVC / real ETW probe / installer lifecycle | Pending GitHub Actions for this version |
+
+The native line exposes both **Text only** and **With background**, keeps all seven metric groups on one baseline, and labels unavailable readings honestly. Explicit `--performance-demo` data was used for layout and export checks; it is not evidence of game capture. Frame-window tests reject other PIDs, keep swap chains separate, expire stale data, and verify FPS/1% low calculations. Recording tests keep one PID/chain and verify monitoring stops when disabled.
+
+Linux captures use Xvfb, software OpenGL and xcompmgr. They establish layout and local interactions, not Windows click-through, hotkeys, real driver sensors, game compatibility, or exclusive fullscreen behavior. The Windows CI integration probe creates real DXGI presents with WARP and reads them through the embedded PresentMon process; its result must be recorded separately from cross-compilation. A fallback finish review was completed directly after the separate reviewer reached its usage limit.
+
 ## English interface — 0.2.1, 25 October 2026
 
 All app-owned interface strings are English: navigation, controls, settings, tooltips, tray actions, startup messages, and recovery states. Original demo tracks and lyrics are English. Real player metadata and LRCLIB lyrics retain their source language.

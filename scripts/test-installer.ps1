@@ -23,7 +23,7 @@ try {
     if ((Get-FileHash $installed).Hash -ne (Get-FileHash $ExpectedExecutable).Hash) {
         throw 'Installed executable differs from the release build.'
     }
-    foreach ($file in @('LICENSE', 'README.md', 'assets/OFL.txt', 'unins000.exe')) {
+    foreach ($file in @('LICENSE', 'README.md', 'assets/OFL.txt', 'assets/licenses/PresentMon.txt', 'unins000.exe')) {
         if (-not (Test-Path (Join-Path $installDir $file))) { throw "Missing installed file: $file" }
     }
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'Sela.lnk'

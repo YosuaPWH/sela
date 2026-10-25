@@ -35,6 +35,19 @@ Charcoal, sage, and amber keep the panel quiet. Width and height use continuous 
 
 Lyrics come from [LRCLIB](https://lrclib.net). Availability, content, and timing depend on the source data. Sela matches the title, artist, and duration; it does not infer timing from plain lyrics. The timeline displays playback position; seeking controls are not implemented yet.
 
+## Gaming performance
+
+<p align="center"><img src="docs/screenshots/sela-performance-text.png" width="816" alt="Sela gaming line with text-only FPS, RAM, VRAM, GPU, CPU, frame time and 1% low"></p>
+<p align="center"><img src="docs/screenshots/sela-performance-background.png" width="816" alt="The same one-line metrics with a charcoal background"></p>
+
+Open **System → Performance**, enable **Show gaming performance line**, and choose **Text only** or **With background**. The closed line is click-through and keeps its readings visible without opening the panel. **Ctrl+Alt+N** or the tray opens the controls. The images use the explicitly labelled native performance demo; normal launches use real data and unavailable states.
+
+- **FPS and frame times:** embedded PresentMon 2.6.0 captures the chosen process. No MSI Afterburner or RTSS installation is needed. Capture may require administrator or Performance Log Users permissions.
+- **Hardware:** live system CPU/RAM, Windows GPU/VRAM counters, and NVIDIA NVML sensors when supported. Unsupported readings, including CPU temperature, show `—`.
+- **Benchmarks:** capture 15/30/60 seconds, finish early, compare sessions, and export their actual frames as CSV/JSON. Save the line style per executable.
+
+[Read the performance guide](docs/PERFORMANCE.md) for source definitions, permissions, packaging, and game compatibility. Borderless/windowed games are recommended. Overclocking, fan control and FPS limiting are outside this release.
+
 ## Room to work
 
 The interface uses English. Track metadata and real lyrics retain the language provided by your player or LRCLIB.
@@ -42,8 +55,8 @@ The interface uses English. Track metadata and real lyrics retain the language p
 | Page | What it does |
 | --- | --- |
 | **Media** | Windows music controls and lyrics in a 600×370 panel, or a 580×54 collapsed music notch. |
-| **Focus** | Sessions of 15, 25, or 50 minutes, with pause, resume, reset, and an optional completion sound. An active focus countdown takes priority in the collapsed notch. |
-| **System** | CPU and RAM readings every 2 seconds while the page is open, plus battery and power status when available. |
+| **Focus** | Sessions of 15, 25, or 50 minutes, with pause, resume, reset, and an optional completion sound. An active focus countdown takes priority when the gaming line is off. |
+| **System** | CPU/RAM/battery overview and native Performance controls, frame history and benchmarks. |
 | **Settings** | Monitor, top offset, hover, reduced motion, sound, lyrics, and mascot preferences. Settings are stored locally. |
 
 | Focus | System |
@@ -87,7 +100,7 @@ Demo mode is labelled and uses no audio or LRCLIB requests. Previous/Next cycles
 | Keep a hover-opened panel visible | Click the pin |
 | Exit | Tray menu, or **Settings → Quit Sela**; scroll down in Settings |
 
-Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority in collapsed mode.
+Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority when the gaming line is off.
 
 ## Data and connectivity
 
@@ -97,21 +110,23 @@ Sela has no accounts or telemetry. Player metadata and system statistics are rea
 - Settings: `%APPDATA%\Sela\Sela\config\settings.json`. Cache: `%LOCALAPPDATA%\Sela\Sela\cache\lyrics`.
 - Legacy Luma settings are read if Sela settings do not exist yet. Subsequent saves use the Sela location, preserving the old file.
 - Invalid settings JSON falls back to defaults and displays a message in Settings. The original file is not overwritten until you save a change.
-- CPU/RAM sampling stops when the System page closes; the collapsed battery indicator is checked every 30 seconds. The focus timer and session count end when the app exits.
+- Overview CPU/RAM sampling stops when its page closes; performance sampling continues while the gaming line is enabled and stops when disabled; the collapsed battery indicator is checked every 30 seconds. The focus timer and session count end when the app exits.
 
 ## Development
 
 ```powershell
+./scripts/fetch-presentmon.ps1
 cargo build --locked --release
 .\target\release\sela-notch.exe
 ```
 
-See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). The Windows x64 cross-build, formatting, Clippy, and 22 tests passed on Linux. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
+See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). Formatting, Clippy, and 27 tests passed on Linux. The Windows provider and its DXGI probe also passed cross-target compile and Clippy checks; full Windows CI validates the release. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
 
-Version tags such as `v0.2.0` automatically build the executable, portable ZIP, and installer, test installation/uninstallation, and publish the files to GitHub Releases. The tag must match the package version in `Cargo.toml`; see the [release guide](docs/RELEASING.md) for subsequent releases.
+Version tags such as `v0.3.0` automatically build the executable, portable ZIP, and installer, test installation/uninstallation, and publish the files to GitHub Releases. The tag must match the package version in `Cargo.toml`; see the [release guide](docs/RELEASING.md) for subsequent releases.
 
 ## Credits
 
+- [PresentMon](https://github.com/GameTechDev/PresentMon): embedded frame capture under its [MIT license](assets/licenses/PresentMon.txt).
 - [egui/eframe](https://github.com/emilk/egui), [windows-rs](https://github.com/microsoft/windows-rs), [sysinfo](https://github.com/GuillaumeGomez/sysinfo), [reqwest](https://github.com/seanmonstar/reqwest), and [LRCLIB](https://lrclib.net).
 - DM Sans is included under the [SIL Open Font License](assets/OFL.txt). Pijar is a project-generated asset; its [prompt and provenance](assets/README.md) are included. Demo lyrics are original Sela text.
 

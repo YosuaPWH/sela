@@ -8,3 +8,5 @@ pub mod platform;
 pub mod telemetry;
 
 pub mod lyrics;
+
+pub mod performance;

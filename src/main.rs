@@ -17,7 +17,7 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Sela")
-            .with_inner_size([600.0, 370.0])
+            .with_inner_size([840.0, 440.0])
             .with_decorations(false)
             .with_transparent(true)
             .with_always_on_top()
