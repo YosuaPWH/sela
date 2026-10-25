@@ -1,6 +1,6 @@
-# Aset Sela
+# Sela assets
 
-- `pijar-sheet.png`: lembar PNG generatif dari eksplorasi maskot proyek Sela, dibuat dengan OpenAI image generation pada 24 Oktober 2026. Aset asal disalin dari preview Sela yang disetujui pengguna. Bagian kiri (30% lebar) adalah Pijar; dua konsep lain di lembar ini diarsipkan dan tidak dirender aplikasi. Pemotongan dilakukan saat decode di Rust agar tekstur GPU tetap di bawah batas OpenGL 2.0. PNG mempertahankan metadata asal; prompt lengkap berada di `pijar.prompt.txt`.
-- `dm-sans-400.ttf`, `dm-sans-600.ttf`: DM Sans regular dan semibold, diperoleh dari distribusi Google Fonts pada eksplorasi preview. Lisensi SIL Open Font License ada di `OFL.txt`. Font di-embed ke executable.
+- `pijar-sheet.png`: a generated PNG sheet from Sela's mascot exploration, created with OpenAI image generation on October 24, 2026. The source asset was copied from the Sela preview approved by the user. The leftmost 30% contains Pijar; the other two concepts are archived and are not rendered by the app. Rust crops the image during decoding to keep the GPU texture within the OpenGL 2.0 minimum texture-size limit. The PNG retains its source metadata; the full generation prompt is in `pijar.prompt.txt`.
+- `dm-sans-400.ttf`, `dm-sans-600.ttf`: DM Sans Regular and Semibold, obtained from the Google Fonts distribution during the preview exploration. The SIL Open Font License is included in `OFL.txt`. Both fonts are embedded in the executable.
 
-Screenshot dalam `docs/screenshots/sela-*` adalah capture langsung aplikasi Rust di Linux/X11. Data musik/liriknya merupakan fixture demo orisinal, bukan hasil pengambilan lirik komersial. Tidak ada lirik dari LRCLIB yang dibundel dalam paket distribusi.
+Images in `docs/screenshots/sela-*` are direct captures of the Rust app running on Linux/X11. Music and lyrics use original demo fixtures rather than retrieved commercial lyrics. No lyrics fetched from LRCLIB are bundled with the distribution.

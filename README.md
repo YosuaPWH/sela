@@ -1,110 +1,113 @@
-<p align="center"><img src="docs/brand/sela-mark.svg" width="72" height="72" alt="Logo Sela"></p>
+<p align="center"><img src="docs/brand/sela-mark.svg" width="72" height="72" alt="Sela logo"></p>
 
 <h1 align="center">Sela</h1>
 
-<p align="center"><strong>Musik dekat. Fokus tetap.</strong><br>Notch untuk Windows, dibuat dengan Rust. Ditemani Pijar, si kunang-kunang.</p>
+<p align="center"><strong>Keep music close. Stay focused.</strong><br>A Windows notch built with Rust, accompanied by Pijar the firefly.</p>
 
 <p align="center">
-  <a href="#mulai"><strong>Mulai</strong></a> ·
-  <a href="#musik-dan-lirik">Musik & lirik</a> ·
+  <a href="#get-started"><strong>Get started</strong></a> ·
+  <a href="#music-and-lyrics">Music & lyrics</a> ·
   <a href="docs/BUILDING.md">Build</a> ·
-  <a href="docs/VALIDATION.md">Pengujian</a>
+  <a href="docs/VALIDATION.md">Validation</a>
 </p>
 
 <p align="center"><code>Windows 10 / 11</code> · <code>Native Rust</code> · <code>Portable</code> · <a href="LICENSE">MIT</a></p>
 
-<p align="center"><img src="docs/screenshots/sela-media-150.png" width="600" alt="Sela dengan kontrol pemutar sage dan baris lirik aktif amber"></p>
+<p align="center"><img src="docs/screenshots/sela-media-150.png" width="600" alt="Sela with sage playback controls and the active lyric highlighted in amber"></p>
 
-Sela tinggal di tengah atas layar. Buka panel untuk mengatur musik atau memulai sesi fokus. Saat ditutup, judul lagu dan satu baris lirik tetap menemanimu.
+Sela lives at the top center of your screen. Open the panel to control music or start a focus session. Close it, and the song title and one current lyric line stay with you.
 
-Warna charcoal, sage, dan amber menjaga panel tetap tenang. Lebar dan tinggi bergerak dengan spring yang menyambung saat arah dibalik. Pijar memberi sedikit hangat; kamu bisa menyembunyikannya di Atur.
+Charcoal, sage, and amber keep the panel quiet. Width and height use continuous springs that preserve their motion when you reverse direction. Pijar adds a little warmth; you can hide the mascot in Settings.
 
-<sub>Galeri diambil dari aplikasi Rust yang berjalan di Linux. Musik dan lirik pada gambar memakai mode demo dengan teks orisinal, tanpa audio. Integrasi Windows masih memerlukan pengujian pada perangkat Windows; lihat <a href="docs/VALIDATION.md">bukti dan batas pengujian</a>.</sub>
+<sub>The gallery shows the Rust app running on Linux. Music and lyrics in these images use original demo data without audio. Windows integration still requires testing on a Windows device; see the <a href="docs/VALIDATION.md">validation evidence and limits</a>.</sub>
 
-## Musik dan lirik
+## Music and lyrics
 
-<p align="center"><img src="docs/screenshots/sela-compact-150.png" width="600" alt="Notch ringkas: judul di kiri dan tepat satu baris lirik di kanan"></p>
+<p align="center"><img src="docs/screenshots/sela-compact-150.png" width="600" alt="Collapsed notch with the song title on the left and exactly one lyric line on the right"></p>
 
-- **Kontrol Windows:** metadata, posisi, putar/jeda, sebelumnya, dan berikutnya melalui Windows System Media Transport Controls. Tombol mengikuti kemampuan pemutar.
-- **Lirik tersinkron:** baris aktif disorot amber; panel terbuka menampilkan baris sebelum dan sesudahnya. Posisi mengikuti pemutar, termasuk ketika lagu dijeda atau posisi berubah.
-- **Tetap terbaca:** judul dan lirik panjang dipotong dengan elipsis; arahkan kursor untuk membaca teks lengkap. Lirik tanpa timestamp ditampilkan sebagai teks biasa dalam panel.
-- **Kondisi jelas:** pencarian, koneksi gagal, instrumental, metadata tidak lengkap, dan lirik yang belum tersedia memiliki pesan sendiri. Hasil pencarian lagu sebelumnya tidak menggantikan lagu baru.
+- **Windows media controls:** metadata, playback position, play/pause, previous, and next through Windows System Media Transport Controls. Buttons follow the player's capabilities.
+- **Synchronized lyrics:** the active line is highlighted in amber; the expanded panel shows the previous and next lines. Lyrics follow the player's position, including pauses and position changes.
+- **Stable alignment:** lyrics are left-aligned in both views. In the collapsed notch, the lyric begins at a fixed left edge to the right of the song title and divider.
+- **Readable text:** long titles and lyrics truncate with an ellipsis; hover to read the full text. Lyrics without timestamps appear as plain text in the expanded panel.
+- **Clear states:** loading, connection errors, instrumental tracks, incomplete metadata, and unavailable lyrics have their own messages. Results for an earlier song cannot replace the current song's lyrics.
 
-Lirik berasal dari [LRCLIB](https://lrclib.net). Ketersediaan, isi, dan ketepatan waktunya bergantung pada data sumber. Sela mencocokkan judul, artis, dan durasi; ia tidak menebak sinkronisasi dari lirik biasa. Timeline menunjukkan posisi; kontrol seek belum disediakan.
+Lyrics come from [LRCLIB](https://lrclib.net). Availability, content, and timing depend on the source data. Sela matches the title, artist, and duration; it does not infer timing from plain lyrics. The timeline displays playback position; seeking controls are not implemented yet.
 
-## Ruang untuk bekerja
+## Room to work
 
-| Halaman | Kegunaan |
+The app currently uses Indonesian interface labels. Their English meanings are included below.
+
+| Page | What it does |
 | --- | --- |
-| **Media** | Musik Windows dan lirik; panel 600×370, atau notch musik ringkas 580×54. |
-| **Fokus** | Sesi 15, 25, atau 50 menit, jeda, lanjutkan, reset, dan bunyi saat selesai. Countdown menjadi prioritas dalam notch ringkas. |
-| **Sistem** | CPU/RAM setiap 2 detik selama halaman terbuka; baterai dan status listrik jika tersedia. |
-| **Atur** | Monitor, jarak dari atas, hover, kurangi animasi, bunyi, lirik, dan maskot. Pengaturan tersimpan di perangkat. |
+| **Media** | Windows music controls and lyrics in a 600×370 panel, or a 580×54 collapsed music notch. |
+| **Focus (`Fokus`)** | Sessions of 15, 25, or 50 minutes, with pause, resume, reset, and an optional completion sound. An active focus countdown takes priority in the collapsed notch. |
+| **System (`Sistem`)** | CPU and RAM readings every 2 seconds while the page is open, plus battery and power status when available. |
+| **Settings (`Atur`)** | Monitor, top offset, hover, reduced motion, sound, lyrics, and mascot preferences. Settings are stored locally. |
 
-| Fokus | Sistem |
+| Focus | System |
 | --- | --- |
-| ![Timer fokus Sela](docs/screenshots/sela-focus.png) | ![CPU dan RAM dari mesin pengembangan](docs/screenshots/sela-system.png) |
-| **Lirik belum tersedia** | **Pengaturan** |
-| ![Pesan saat tidak ada lirik yang cocok; data demo](docs/screenshots/sela-missing.png) | ![Pengaturan Sela dan penjelasan data pencarian lirik](docs/screenshots/sela-settings.png) |
+| ![Sela focus timer](docs/screenshots/sela-focus.png) | ![CPU and RAM readings from the development machine](docs/screenshots/sela-system.png) |
+| **Unavailable lyrics** | **Settings** |
+| ![Unavailable lyrics message using demo data](docs/screenshots/sela-missing.png) | ![Sela settings and disclosure of data sent for lyric lookup](docs/screenshots/sela-settings.png) |
 
-Sela selalu di atas, tanpa bingkai atau tombol taskbar. Tray menyediakan akses ke panel, fokus, pengaturan, dan keluar. Pin mempertahankan panel hover. Satu instance per sesi Windows mencegah overlay ganda.
+Sela stays on top, without a window frame or taskbar button. The tray provides access to the panel, focus timer, settings, and exit. Pinning keeps a hover-opened panel visible. A single instance per Windows session prevents duplicate overlays.
 
-## Mulai
+## Get started
 
-**Windows 10 versi 1809 atau lebih baru / Windows 11, x64**, dengan driver OpenGL 2.0+.
+**Windows 10 version 1809 or later / Windows 11, x64**, with an OpenGL 2.0+ driver.
 
-1. Ekstrak paket portable **Sela-windows-x64-v0.2.0.zip** yang disertakan bersama proyek, atau artifact **Sela-windows-x64** dari workflow GitHub Actions.
-2. Jalankan **`sela-notch.exe`**.
-3. Sentuh notch sebentar, klik, atau tekan **`Ctrl+Alt+N`**. Putar musik di pemutar yang mendukung kontrol media Windows.
+1. Extract the portable **Sela-windows-x64-v0.2.0.zip** supplied with the project, or download the **Sela-windows-x64** artifact from GitHub Actions.
+2. Run **`sela-notch.exe`**.
+3. Hover over the notch briefly, click it, or press **`Ctrl+Alt+N`**. Play music in a player that supports Windows media controls.
 
-Tanpa installer atau hak administrator. Aplikasi belum ditandatangani dan tidak menambahkan startup Windows otomatis.
+No installer or administrator privileges are required. The app is unsigned and does not add itself to Windows startup automatically.
 
 ```powershell
 .\sela-notch.exe --expanded
 ```
 
-Untuk mencoba tampilan tanpa pemutar:
+To explore the interface without a media player:
 
 ```powershell
 .\sela-notch.exe --demo --expanded
 ```
 
-Mode demo diberi label, tanpa audio atau permintaan LRCLIB. Tombol berikutnya/sebelumnya berpindah di antara lima contoh orisinal: lirik tersinkron, teks panjang, lirik kosong, teks tanpa waktu, dan instrumental. Jalankan tanpa `--demo` untuk memakai pemutar Windows.
+Demo mode is labelled and uses no audio or LRCLIB requests. Previous/Next cycles through five original examples: synchronized lyrics, long text, unavailable lyrics, plain lyrics, and an instrumental track. Launch without `--demo` to use Windows media sessions.
 
-| Tindakan | Cara |
+| Action | Control |
 | --- | --- |
-| Buka / tutup | `Ctrl+Alt+N` |
-| Tutup | `Esc` saat panel aktif |
-| Buka lewat hover | Tahan kursor sekitar 240 ms |
-| Pindah halaman | Klik tab atau gulir di header |
-| Pertahankan panel hover | Klik pin |
-| Keluar | Tray atau **Atur → Keluar dari Sela**; gulir pengaturan ke bawah |
+| Open / close | `Ctrl+Alt+N` |
+| Close | `Esc` while the panel has focus |
+| Open on hover | Keep the pointer over the notch for about 240 ms |
+| Switch pages | Click a tab or scroll over the header |
+| Keep a hover-opened panel visible | Click the pin |
+| Exit | Tray menu, or **Settings (`Atur`) → `Keluar dari Sela`**; scroll down in Settings |
 
-Panel yang dibuka lewat klik/shortcut tetap terbuka sampai ditutup. Panel hover menutup sekitar 650 ms setelah kursor keluar, kecuali dipin. **Kurangi animasi** langsung menampilkan keadaan akhir. Lirik yang dinonaktifkan memakai notch musik pendek; timer fokus aktif mendapat prioritas di mode ringkas.
+Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion (`Kurangi animasi`)** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority in collapsed mode.
 
-## Data dan koneksi
+## Data and connectivity
 
-Sela tidak memakai akun atau telemetri. Metadata pemutar dan statistik dibaca dari perangkat. **Saat lirik aktif**, judul, artis, dan durasi dikirim melalui HTTPS ke LRCLIB. Matikan **Atur → Tampilkan lirik musik** untuk menghentikan pencarian baru; permintaan yang sudah berjalan dapat menyelesaikan koneksinya, tetapi hasilnya diabaikan.
+Sela has no accounts or telemetry. Player metadata and system statistics are read from your device. **When lyrics are enabled**, the track title, artist, and duration are sent to LRCLIB over HTTPS. Turn off **Settings (`Atur`) → `Tampilkan lirik musik`** to stop new lookups. An in-flight request may finish its connection, but its result will be ignored.
 
-- Lirik berhasil disimpan dalam cache lokal selama 30 hari; hasil tidak ditemukan selama 1 hari. Kegagalan koneksi tidak disimpan. Cache yang masih valid dapat dipakai tanpa internet.
-- Pengaturan: `%APPDATA%\Sela\Sela\config\settings.json`. Cache: `%LOCALAPPDATA%\Sela\Sela\cache\lyrics`.
-- Pengaturan Luma lama dibaca jika file Sela belum ada; penyimpanan berikutnya memakai lokasi Sela. File lama dipertahankan.
-- JSON rusak memakai default dan menampilkan pesan di Atur. File asli tidak ditimpa sampai kamu menyimpan perubahan.
-- CPU/RAM berhenti dibaca saat halaman Sistem ditutup; baterai ringkas diperiksa setiap 30 detik. Timer dan jumlah sesi berakhir ketika aplikasi keluar.
+- Successful lyric results are cached locally for 30 days; not-found results for 1 day. Connection failures are not cached. A valid cache entry can be used offline.
+- Settings: `%APPDATA%\Sela\Sela\config\settings.json`. Cache: `%LOCALAPPDATA%\Sela\Sela\cache\lyrics`.
+- Legacy Luma settings are read if Sela settings do not exist yet. Subsequent saves use the Sela location, preserving the old file.
+- Invalid settings JSON falls back to defaults and displays a message in Settings. The original file is not overwritten until you save a change.
+- CPU/RAM sampling stops when the System page closes; the collapsed battery indicator is checked every 30 seconds. The focus timer and session count end when the app exits.
 
-## Pengembangan
+## Development
 
 ```powershell
 cargo build --locked --release
 .\target\release\sela-notch.exe
 ```
 
-Lihat [panduan build](docs/BUILDING.md), [validasi](docs/VALIDATION.md), [desain](DESIGN.md), dan [ruang lingkup produk](PRODUCT.md). Build Windows x64, format, Clippy, dan 22 tes telah lulus dari Linux. Runtime Windows—media, tray, shortcut, click-through, dan DPI lintas monitor—masih perlu diuji langsung.
+See the [build guide](docs/BUILDING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). The Windows x64 cross-build, formatting, Clippy, and 22 tests passed on Linux. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
 
-## Kredit
+## Credits
 
-- [Poni / Oyen Poni](https://github.com/lucacadalora/poni): referensi navigasi header, pembacaan sistem sesuai kebutuhan, dan susunan README. [Catatan sumber](docs/REFERENCE_PONI.md).
-- [egui/eframe](https://github.com/emilk/egui), [windows-rs](https://github.com/microsoft/windows-rs), [sysinfo](https://github.com/GuillaumeGomez/sysinfo), [reqwest](https://github.com/seanmonstar/reqwest), dan [LRCLIB](https://lrclib.net).
-- DM Sans disertakan dengan [SIL Open Font License](assets/OFL.txt). Pijar berasal dari aset generatif proyek; [prompt dan asal](assets/README.md) disertakan. Lirik demo adalah teks orisinal Sela.
+- [Poni / Oyen Poni](https://github.com/lucacadalora/poni): a reference for header navigation, on-demand system sampling, and README structure. See the [source review](docs/REFERENCE_PONI.md).
+- [egui/eframe](https://github.com/emilk/egui), [windows-rs](https://github.com/microsoft/windows-rs), [sysinfo](https://github.com/GuillaumeGomez/sysinfo), [reqwest](https://github.com/seanmonstar/reqwest), and [LRCLIB](https://lrclib.net).
+- DM Sans is included under the [SIL Open Font License](assets/OFL.txt). Pijar is a project-generated asset; its [prompt and provenance](assets/README.md) are included. Demo lyrics are original Sela text.
 
-Kode berlisensi **[MIT](LICENSE)**. Proyek independen, tidak berafiliasi dengan Apple, Spotify, atau LRCLIB.
+Code is licensed under **[MIT](LICENSE)**. This is an independent project, unaffiliated with Apple, Spotify, or LRCLIB.
