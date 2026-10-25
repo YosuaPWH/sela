@@ -413,7 +413,8 @@ mod capture_test {
         Graphics::{
             Direct3D::D3D_DRIVER_TYPE_WARP,
             Direct3D11::{
-                D3D11CreateDeviceAndSwapChain, D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
+                D3D11CreateDeviceAndSwapChain, ID3D11Texture2D, D3D11_CREATE_DEVICE_FLAG,
+                D3D11_SDK_VERSION,
             },
             Dxgi::{
                 Common::{DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_MODE_DESC, DXGI_SAMPLE_DESC},
@@ -490,6 +491,7 @@ mod capture_test {
             };
             let mut swap = None;
             let mut device = None;
+            let mut context = None;
             D3D11CreateDeviceAndSwapChain(
                 None,
                 D3D_DRIVER_TYPE_WARP,
@@ -501,10 +503,19 @@ mod capture_test {
                 Some(&mut swap),
                 Some(&mut device),
                 None,
-                None,
+                Some(&mut context),
             )
             .unwrap();
             let swap = swap.unwrap();
+            let device = device.unwrap();
+            let context = context.unwrap();
+            let buffer: ID3D11Texture2D = swap.GetBuffer(0).unwrap();
+            let mut view = None;
+            device
+                .CreateRenderTargetView(&buffer, None, Some(&mut view))
+                .unwrap();
+            let view = view.unwrap();
+            let _ = SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 128, 128, SWP_SHOWWINDOW);
             let mut capture = super::super::capture(&Application {
                 pid: std::process::id(),
                 name: "SelaCaptureProbe.exe".into(),
@@ -518,16 +529,22 @@ mod capture_test {
                     let _ = TranslateMessage(&message);
                     DispatchMessageW(&message);
                 }
+                context.ClearRenderTargetView(&view, &[0.1, 0.3, 0.2, 1.0]);
+                context.Flush();
                 swap.Present(0, DXGI_PRESENT(0)).ok().unwrap();
                 std::thread::sleep(Duration::from_millis(16));
                 frames.extend(capture.frames.try_iter());
                 if let Some(code) = capture.child.try_wait().unwrap() {
-                    panic!("PresentMon exited before capturing frames: {code}");
+                    panic!(
+                        "PresentMon exited before capturing frames: {code}; {}",
+                        super::super::capture_diagnostics(&capture)
+                    );
                 }
             }
             assert!(
                 frames.len() >= 10,
-                "No DXGI frames captured; check runner ETW permissions"
+                "No DXGI frames captured. Provider diagnostics: {}",
+                super::super::capture_diagnostics(&capture)
             );
             assert!(frames
                 .iter()

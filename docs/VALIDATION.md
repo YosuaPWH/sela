@@ -5,7 +5,7 @@
 | Check | Result |
 | --- | --- |
 | Formatting / Clippy / Linux build | Passed |
-| `cargo test --locked` | 27 passed |
+| `cargo test --locked` | 28 passed |
 | Windows provider and DXGI integration-probe cross-target check / Clippy | Passed using the Windows GNU target; this does not execute the probe |
 | Workflow syntax | actionlint passed |
 | Native rendering | Both line styles and controls at 100%/150%, plus off/unavailable, recording, export, and retained panels |

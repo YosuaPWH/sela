@@ -5,7 +5,7 @@ use std::{
     io::{BufRead, BufReader, Read},
     path::PathBuf,
     process::{Child, Command, Stdio},
-    sync::{mpsc, Arc},
+    sync::{mpsc, Arc, Mutex},
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -129,11 +129,13 @@ impl CsvFrames {
             .has_headers(false)
             .from_reader(line.trim_start_matches('\u{feff}').as_bytes());
         let row = reader.records().next()?.ok()?;
-        if let Some(pid) = row.iter().position(|v| v == "ProcessID") {
+        if let Some(pid) = row.iter().position(|v| v.eq_ignore_ascii_case("ProcessID")) {
             self.columns = Some((
                 pid,
-                row.iter().position(|v| v == "SwapChainAddress")?,
-                row.iter().position(|v| v == "MsBetweenPresents")?,
+                row.iter()
+                    .position(|v| v.eq_ignore_ascii_case("SwapChainAddress"))?,
+                row.iter()
+                    .position(|v| v.eq_ignore_ascii_case("MsBetweenPresents"))?,
             ));
             return None;
         }
@@ -324,6 +326,7 @@ struct Capture {
     session: String,
     child: Child,
     frames: mpsc::Receiver<Frame>,
+    diagnostics: Arc<Mutex<VecDeque<String>>>,
 }
 impl Drop for Capture {
     fn drop(&mut self) {
@@ -342,6 +345,21 @@ impl Drop for Capture {
         native::prepare_command(&mut cleanup);
         let _ = cleanup.status();
     }
+}
+fn remember_diagnostic(log: &Mutex<VecDeque<String>>, line: &str) {
+    if let Ok(mut log) = log.lock() {
+        if log.len() >= 32 {
+            log.pop_front();
+        }
+        log.push_back(line.trim().chars().take(512).collect());
+    }
+}
+fn capture_diagnostics(capture: &Capture) -> String {
+    capture
+        .diagnostics
+        .lock()
+        .map(|lines| lines.iter().cloned().collect::<Vec<_>>().join(" | "))
+        .unwrap_or_default()
 }
 fn provider() -> Result<PathBuf, String> {
     const BYTES: &[u8] = include_bytes!(env!("SELA_PRESENTMON_BUNDLE"));
@@ -398,7 +416,7 @@ fn capture(app: &Application) -> Result<Capture, String> {
     command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+        .stderr(Stdio::piped());
     native::prepare_command(&mut command);
     let mut child = command
         .spawn()
@@ -412,6 +430,27 @@ fn capture(app: &Application) -> Result<Capture, String> {
         }
     };
     let stdout = child.stdout.take().ok_or("PresentMon stdout unavailable")?;
+    let diagnostics = Arc::new(Mutex::new(VecDeque::new()));
+    if let Some(stderr) = child.stderr.take() {
+        let log = diagnostics.clone();
+        thread::spawn(move || {
+            let mut input = BufReader::new(stderr);
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match input.by_ref().take(64 * 1024).read_line(&mut line) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {
+                        remember_diagnostic(&log, &line);
+                        if line.len() >= 64 * 1024 {
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+    let output_log = diagnostics.clone();
     let (tx, frames) = mpsc::sync_channel(4096);
     thread::spawn(move || {
         let mut parser = CsvFrames::default();
@@ -429,6 +468,8 @@ fn capture(app: &Application) -> Result<Capture, String> {
                         if tx.send(frame).is_err() {
                             break;
                         }
+                    } else {
+                        remember_diagnostic(&output_log, &line);
                     }
                 }
             }
@@ -440,6 +481,7 @@ fn capture(app: &Application) -> Result<Capture, String> {
         _guard: guard,
         provider,
         session,
+        diagnostics,
     })
 }
 
@@ -608,7 +650,7 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
         if let Some(c) = &mut stream {
             frames.extend(c.frames.try_iter().take(8192));
             if let Ok(Some(code)) = c.child.try_wait() {
-                reading.status=format!("PresentMon stopped ({code}). Check capture permissions; try running Sela as administrator, then Retry.");
+                reading.status=format!("PresentMon stopped ({code}). Check capture permissions; try running Sela as administrator, then Retry. {}", capture_diagnostics(c));
                 blocked = true;
                 stream = None;
             }
@@ -693,6 +735,18 @@ mod tests {
         ] {
             assert!(parser.parse(row).is_none());
         }
+    }
+    #[test]
+    fn pinned_presentmon_v1_header_uses_lowercase_ms() {
+        // PresentMon 2.6.0 CsvOutput.cpp: WriteCsvHeader<FrameMetrics1>.
+        let mut parser = CsvFrames::default();
+        assert!(parser.parse("Application,ProcessID,SwapChainAddress,Runtime,SyncInterval,PresentFlags,Dropped,TimeInSeconds,msInPresentAPI,msBetweenPresents").is_none());
+        let frame = parser
+            .parse("game.exe,7,0x42,DXGI,0,0,0,1.5,0.1,16.6667")
+            .unwrap();
+        assert_eq!(frame.pid, 7);
+        assert_eq!(frame.chain, "0x42");
+        assert_eq!(frame.ms, 16.6667);
     }
     #[test]
     fn fps_and_low_use_captured_frame_times() {

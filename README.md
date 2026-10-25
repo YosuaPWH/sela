@@ -120,7 +120,7 @@ cargo build --locked --release
 .\target\release\sela-notch.exe
 ```
 
-See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). Formatting, Clippy, and 27 tests passed on Linux. The Windows provider and its DXGI probe also passed cross-target compile and Clippy checks; full Windows CI validates the release. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
+See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). Formatting, Clippy, and 28 tests passed on Linux. The Windows provider and its DXGI probe also passed cross-target compile and Clippy checks; full Windows CI validates the release. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
 
 Version tags such as `v0.3.0` automatically build the executable, portable ZIP, and installer, test installation/uninstallation, and publish the files to GitHub Releases. The tag must match the package version in `Cargo.toml`; see the [release guide](docs/RELEASING.md) for subsequent releases.
 
