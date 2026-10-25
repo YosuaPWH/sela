@@ -112,7 +112,6 @@ Version tags such as `v0.2.0` automatically build the executable, portable ZIP, 
 
 ## Credits
 
-- [Poni / Oyen Poni](https://github.com/lucacadalora/poni): a reference for header navigation, on-demand system sampling, and README structure. See the [source review](docs/REFERENCE_PONI.md).
 - [egui/eframe](https://github.com/emilk/egui), [windows-rs](https://github.com/microsoft/windows-rs), [sysinfo](https://github.com/GuillaumeGomez/sysinfo), [reqwest](https://github.com/seanmonstar/reqwest), and [LRCLIB](https://lrclib.net).
 - DM Sans is included under the [SIL Open Font License](assets/OFL.txt). Pijar is a project-generated asset; its [prompt and provenance](assets/README.md) are included. Demo lyrics are original Sela text.
 
