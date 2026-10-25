@@ -212,7 +212,7 @@ Expanded views share content insets, a header, four equal-width tabs separated b
 
 The Canvas media body is 552 points wide after the shell insets. The player occupies 226 points, the lyrics occupy 298, and the columns are separated by 28. A thin tonal divider sits midway in the gap. Both regions allocate 208 points of body height. The player uses a sage note tile, truncated title and artist, playback label, progress, timestamps, and transport controls. Synced lyrics show previous, current, and next lines. Each lyric allocates a full-width row and paints one clipped line at the shared fixed left edge; its tooltip and semantic label retain the full text. Plain unsynced lyrics use a vertical scroll area.
 
-Compact music keeps the title in a clipped left region, separated from the single amber line by a short divider. It retains the music geometry while paused. An active or paused focus session takes compact priority. The idle pill uses the local clock when there is no media title.
+Compact music keeps the title left-aligned in a clipped left region, separated from the single amber line by a short divider. Center the lyric horizontally within its own right-hand region after single-line truncation; preserve clipping and the line-change fade/offset. It retains the music geometry while paused. An active or paused focus session takes compact priority. The idle pill uses the local clock when there is no media title.
 
 ## Elevation & Depth
 

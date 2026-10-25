@@ -39,6 +39,10 @@ AccessKit diaktifkan dalam build agar nama dan peran widget diekspor ke aksesibi
 
 Review terpisah menemukan alignment lirik dan fitur ekspor aksesibilitas yang belum aktif. Kedua perbaikan dinilai **resolved**, dengan disposition **ship** pada cakupan implementasi/pratinjau native yang diperiksa. Verdict terakhir hanya memeriksa dua koreksi itu, bukan sertifikasi integrasi Windows. Capture tersinkron, teks panjang, dan fallback diperbarui pada 100%/150%; `cargo tree` mengonfirmasi AccessKit dan executable mengimpor `uiautomationcore.dll`. Pemeriksaan statis import DLL menunjukkan hanya DLL sistem Windows, tanpa DLL MinGW terpisah.
 
+## Penyesuaian lirik ringkas — 25 Oktober 2026
+
+Lirik saat panel ditutup kini rata tengah di area kanan judul; judul dan lirik pada panel terbuka tetap rata kiri. Capture native Linux pada 100%/150% memeriksa teks pendek, teks panjang dengan elipsis, dan pesan lirik belum tersedia. Titik tengah piksel teks berada dalam 0,5 physical pixel dari titik tengah area lirik pada enam capture; tidak ada teks melewati pembatas. Clipping, fade 240 ms, dan pergeseran vertikal tetap dipertahankan. `cargo fmt`, `cargo check`, build Linux, dan Clippy lulus.
+
 ## Checklist runtime Windows yang belum dijalankan
 
 - [ ] Posisi atas-tengah, transparansi, tray Pijar, dan tidak adanya tombol taskbar.

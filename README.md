@@ -23,11 +23,11 @@ Charcoal, sage, and amber keep the panel quiet. Width and height use continuous 
 
 ## Music and lyrics
 
-<p align="center"><img src="docs/screenshots/sela-compact-150.png" width="600" alt="Collapsed notch with the song title on the left and exactly one lyric line on the right"></p>
+<p align="center"><img src="docs/screenshots/sela-compact-150.png" width="600" alt="Collapsed notch with a left-aligned song title and one centered lyric line in the right-hand area"></p>
 
 - **Windows media controls:** metadata, playback position, play/pause, previous, and next through Windows System Media Transport Controls. Buttons follow the player's capabilities.
 - **Synchronized lyrics:** the active line is highlighted in amber; the expanded panel shows the previous and next lines. Lyrics follow the player's position, including pauses and position changes.
-- **Stable alignment:** lyrics are left-aligned in both views. In the collapsed notch, the lyric begins at a fixed left edge to the right of the song title and divider.
+- **Lyric alignment:** the collapsed notch centers the current lyric within the area to the right of the song title and divider. Expanded lyrics remain left-aligned.
 - **Readable text:** long titles and lyrics truncate with an ellipsis; hover to read the full text. Lyrics without timestamps appear as plain text in the expanded panel.
 - **Clear states:** loading, connection errors, instrumental tracks, incomplete metadata, and unavailable lyrics have their own messages. Results for an earlier song cannot replace the current song's lyrics.
 

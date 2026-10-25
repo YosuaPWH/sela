@@ -376,7 +376,7 @@ impl NotchApp {
             pos2(origin.x + 58.0, center_y - 10.0),
             vec2(title_width, 22.0),
         );
-        paint_line(ui.painter(), text_rect, &label, 13.0, TEXT);
+        paint_line(ui.painter(), text_rect, &label, 13.0, TEXT, Align::Min);
         if music {
             let divider = text_rect.right() + 15.0;
             ui.painter().line_segment(
@@ -398,6 +398,7 @@ impl NotchApp {
                 &self.active_line,
                 13.0,
                 AMBER.gamma_multiply(0.4 + 0.6 * fade),
+                Align::Center,
             );
         } else {
             let trailing = self
@@ -1377,7 +1378,14 @@ fn semibold(size: f32) -> FontId {
     FontId::new(size, egui::FontFamily::Name("semibold".into()))
 }
 
-fn paint_line(painter: &egui::Painter, rect: Rect, text: &str, size: f32, color: Color32) {
+fn paint_line(
+    painter: &egui::Painter,
+    rect: Rect,
+    text: &str,
+    size: f32,
+    color: Color32,
+    align: Align,
+) {
     let mut job = egui::text::LayoutJob::simple(
         text.replace(['\n', '\r'], " "),
         FontId::proportional(size),
@@ -1387,9 +1395,14 @@ fn paint_line(painter: &egui::Painter, rect: Rect, text: &str, size: f32, color:
     job.wrap.max_rows = 1;
     job.wrap.break_anywhere = true;
     let galley = painter.layout_job(job);
+    let x = if align == Align::Center {
+        rect.left() + ((rect.width() - galley.size().x) * 0.5).max(0.0)
+    } else {
+        rect.left()
+    };
     painter
         .with_clip_rect(rect.intersect(painter.clip_rect()))
-        .galley(rect.min, galley, color);
+        .galley(pos2(x, rect.top()), galley, color);
 }
 
 fn lyric_label(ui: &mut egui::Ui, text: &str, size: f32, color: Color32, strong: bool) {
