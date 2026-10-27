@@ -13,6 +13,9 @@ pub struct Settings {
     pub lyrics_enabled: bool,
     pub show_mascot: bool,
     pub performance_enabled: bool,
+    /// Show the gaming line only while a game is detected.
+    pub performance_auto: bool,
+    pub performance_games: Vec<String>,
     pub performance_style: crate::performance::LineStyle,
     pub performance_target: String,
     pub performance_profiles: std::collections::BTreeMap<String, crate::performance::LineStyle>,
@@ -30,6 +33,8 @@ impl Default for Settings {
             lyrics_enabled: true,
             show_mascot: true,
             performance_enabled: false,
+            performance_auto: true,
+            performance_games: vec![],
             performance_style: Default::default(),
             performance_target: String::new(),
             performance_profiles: Default::default(),
@@ -101,6 +106,7 @@ mod tests {
         assert!(s.expand_on_hover);
         assert!(s.lyrics_enabled && s.show_mascot);
         assert!(!s.performance_enabled);
+        assert!(s.performance_auto);
         assert_eq!(s.performance_style, crate::performance::LineStyle::TextOnly);
         let with_profile: Settings = serde_json::from_str(
             r#"{"performance_style":"background","performance_profiles":{"game.exe":"text_only"}}"#,

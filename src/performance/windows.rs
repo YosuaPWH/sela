@@ -1,4 +1,4 @@
-use super::{Application, HardwareReading};
+use super::{Application, Foreground, HardwareReading};
 use std::{
     collections::BTreeMap,
     ffi::c_void,
@@ -9,7 +9,10 @@ use std::{
 use windows::{
     core::{w, HSTRING, PCSTR, PCWSTR},
     Win32::{
-        Foundation::{CloseHandle, FreeLibrary, BOOL, HMODULE, HWND, LPARAM},
+        Foundation::{CloseHandle, FreeLibrary, BOOL, HMODULE, HWND, LPARAM, RECT},
+        Graphics::Gdi::{
+            GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+        },
         System::{
             LibraryLoader::{GetProcAddress, LoadLibraryExW, LOAD_LIBRARY_SEARCH_SYSTEM32},
             Performance::*,
@@ -21,7 +24,8 @@ use windows::{
         UI::{
             Shell::ShellExecuteW,
             WindowsAndMessaging::{
-                EnumWindows, GetForegroundWindow, GetWindowThreadProcessId, IsWindowVisible,
+                EnumWindows, GetForegroundWindow, GetWindowRect, GetWindowThreadProcessId,
+                IsWindowVisible,
             },
         },
     },
@@ -65,6 +69,41 @@ fn application(hwnd: HWND) -> Option<Application> {
 }
 pub fn foreground() -> Option<Application> {
     unsafe { application(GetForegroundWindow()) }
+}
+pub fn foreground_window() -> Option<Foreground> {
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        let mut pid = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        if pid == std::process::id() {
+            return Some(Foreground::Own);
+        }
+        let app = application(hwnd)?;
+        Some(Foreground::App {
+            app,
+            fullscreen: covers_monitor(hwnd),
+        })
+    }
+}
+/// Exclusive and borderless fullscreen windows both cover their whole monitor;
+/// maximized windows stop at the taskbar.
+fn covers_monitor(hwnd: HWND) -> bool {
+    unsafe {
+        let mut rect = RECT::default();
+        if GetWindowRect(hwnd, &mut rect).is_err() {
+            return false;
+        }
+        let mut info = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
+        if !GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mut info).as_bool()
+        {
+            return false;
+        }
+        let m = info.rcMonitor;
+        rect.left <= m.left && rect.top <= m.top && rect.right >= m.right && rect.bottom >= m.bottom
+    }
 }
 pub fn applications() -> Vec<Application> {
     unsafe extern "system" fn collect(hwnd: HWND, data: LPARAM) -> BOOL {
