@@ -95,12 +95,12 @@ Demo mode is labelled and uses no audio or LRCLIB requests. Previous/Next cycles
 | --- | --- |
 | Open / close | `Ctrl+Alt+N` |
 | Close | `Esc` while the panel has focus |
-| Open on hover | Keep the pointer over the notch for about 240 ms |
+| Open on hover | Keep the pointer over the notch for about 150 ms |
 | Switch pages | Click a tab or scroll over the header |
 | Keep a hover-opened panel visible | Click the pin |
 | Exit | Tray menu, or **Settings → Quit Sela**; scroll down in Settings |
 
-Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 650 ms after the pointer leaves, unless pinned. **Reduce motion** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority when the gaming line is off.
+Panels opened by a click or shortcut stay open until closed. A hover-opened panel closes about 300 ms after the pointer leaves, even after you click inside it, unless pinned. **Reduce motion** displays the final state immediately. Disabling lyrics uses the shorter music notch; an active focus timer takes priority when the gaming line is off.
 
 ## Data and connectivity
 
