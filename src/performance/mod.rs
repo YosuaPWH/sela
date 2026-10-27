@@ -28,6 +28,9 @@ mod fallback {
     pub fn foreground() -> Option<Application> {
         None
     }
+    pub fn foreground_window() -> Option<Foreground> {
+        None
+    }
     pub fn prepare_command(_: &mut Command) {}
     pub struct ChildGuard;
     pub fn guard_child(_: &std::process::Child) -> Result<ChildGuard, String> {
@@ -54,12 +57,48 @@ pub struct Configuration {
     pub enabled: bool,
     pub target: String,
     pub demo: bool,
+    /// Lowercase executable names that always count as games.
+    pub games: Vec<String>,
 }
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Application {
     pub pid: u32,
     pub name: String,
 }
+/// What owns the foreground window.
+pub enum Foreground {
+    Own,
+    App { app: Application, fullscreen: bool },
+}
+
+/// Fullscreen applications that render continuously but are not games.
+const NOT_GAMES: &[&str] = &[
+    "chrome.exe",
+    "msedge.exe",
+    "firefox.exe",
+    "opera.exe",
+    "brave.exe",
+    "vivaldi.exe",
+    "vlc.exe",
+    "mpc-hc64.exe",
+    "mpc-be64.exe",
+    "potplayermini64.exe",
+    "wmplayer.exe",
+    "microsoft.media.player.exe",
+    "video.ui.exe",
+    "powerpnt.exe",
+];
+
+/// Brief alt-tabs and loading screens must not make the gaming line flicker.
+const GAME_GRACE: Duration = Duration::from_secs(2);
+
+/// A presenting foreground application is a game when the player marked it as
+/// one, or when it covers its monitor and is not a known video or browser app.
+pub fn is_game(name: &str, fullscreen: bool, games: &[String]) -> bool {
+    let name = name.to_ascii_lowercase();
+    games.contains(&name) || fullscreen && !NOT_GAMES.contains(&name.as_str())
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct HardwareReading {
     pub gpu: Option<f64>,
@@ -82,6 +121,8 @@ pub struct Reading {
     pub recording_seconds: Option<f64>,
     pub completed: Option<Arc<Session>>,
     pub demo: bool,
+    /// A game is in the foreground and presenting frames.
+    pub gaming: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameStats {
@@ -511,6 +552,7 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
     let mut blocked = false;
     let mut last_apps = Instant::now() - Duration::from_secs(3);
     let mut last_hardware = last_apps;
+    let mut last_game: Option<Instant> = None;
     loop {
         match rx.recv_timeout(if config.enabled {
             Duration::from_millis(250)
@@ -572,6 +614,8 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
             reading.target = None;
             reading.history.clear();
             reading.recording_seconds = None;
+            reading.gaming = false;
+            last_game = None;
             reading.status = "Performance monitoring is off.".into();
             if tx.send(reading.clone()).is_err() {
                 break;
@@ -674,6 +718,21 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
         } else if stream.is_some() {
             reading.status="No recent frames. Keep the game running; choose its process or check capture permissions.".into();
         }
+        let detected = config.demo
+            || match native::foreground_window() {
+                // Sela takes the foreground while its panel is open over a game.
+                Some(Foreground::Own) => reading.gaming,
+                Some(Foreground::App { app, fullscreen }) => {
+                    reading.target.as_ref().is_some_and(|t| t.pid == app.pid)
+                        && reading.frames.is_some()
+                        && is_game(&app.name, fullscreen, &config.games)
+                }
+                None => false,
+            };
+        if detected {
+            last_game = Some(now);
+        }
+        reading.gaming = last_game.is_some_and(|t| now.duration_since(t) < GAME_GRACE);
         if now.duration_since(last_hardware) >= Duration::from_secs(1) {
             if config.demo {
                 reading.cpu = Some(35.0);
@@ -748,6 +807,15 @@ mod tests {
         assert_eq!(frame.chain, "0x42");
         assert_eq!(frame.ms, 16.6667);
     }
+    #[test]
+    fn games_are_fullscreen_non_media_apps_or_marked() {
+        let marked = vec!["chrome.exe".to_owned()];
+        assert!(is_game("Game.exe", true, &[]));
+        assert!(!is_game("Game.exe", false, &[]));
+        assert!(!is_game("Chrome.exe", true, &[]));
+        assert!(is_game("Chrome.exe", false, &marked));
+    }
+
     #[test]
     fn fps_and_low_use_captured_frame_times() {
         let stats = FrameStats::calculate(&[10.0, 10.0, 20.0]).unwrap();
@@ -848,6 +916,7 @@ mod tests {
             enabled: true,
             demo: true,
             target: String::new(),
+            games: vec![],
         });
         loop {
             let r = monitor
@@ -855,6 +924,7 @@ mod tests {
                 .recv_timeout(Duration::from_secs(3))
                 .unwrap();
             if r.frames.is_some() {
+                assert!(r.gaming);
                 assert!(r.demo);
                 break;
             }

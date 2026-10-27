@@ -196,15 +196,16 @@ impl NotchApp {
         } else {
             lyrics::Selection::default()
         };
-        let initial_size = if settings.performance_enabled && !expanded {
-            vec2(816.0, 48.0)
-        } else if expanded {
-            CANVAS
-        } else if demo && settings.lyrics_enabled {
-            MUSIC_COMPACT
-        } else {
-            COMPACT
-        };
+        let initial_size =
+            if settings.performance_enabled && !settings.performance_auto && !expanded {
+                vec2(816.0, 48.0)
+            } else if expanded {
+                CANVAS
+            } else if demo && settings.lyrics_enabled {
+                MUSIC_COMPACT
+            } else {
+                COMPACT
+            };
         Self {
             timer: FocusTimer::new(settings.focus_minutes),
             settings,
@@ -303,8 +304,14 @@ impl NotchApp {
         )));
     }
 
+    /// Whether the closed notch is the click-through gaming line right now.
+    fn gaming_line(&self) -> bool {
+        self.settings.performance_enabled
+            && (!self.settings.performance_auto || self.performance_reading.gaming)
+    }
+
     fn compact_size(&self) -> Vec2 {
-        if self.settings.performance_enabled {
+        if self.gaming_line() {
             return vec2(816.0_f32.min((self.monitor_width - 24.0).max(320.0)), 48.0);
         }
         if self.settings.lyrics_enabled
@@ -399,7 +406,7 @@ impl NotchApp {
     }
 
     fn compact(&mut self, ui: &mut egui::Ui, shape: Rect) {
-        if self.settings.performance_enabled {
+        if self.gaming_line() {
             self.performance_line(ui, shape);
             return;
         }
@@ -1092,6 +1099,8 @@ impl NotchApp {
         let mut changed = false;
         egui::ScrollArea::vertical().id_salt("performance-scroll").max_height(278.0).show(ui,|ui|{
             changed|=ui.checkbox(&mut self.settings.performance_enabled,"Show gaming performance line").changed();
+            changed|=ui.checkbox(&mut self.settings.performance_auto,"Only while a game is playing").changed();
+            ui.label(RichText::new("A game is a fullscreen application that is rendering frames. Browsers and video players are ignored unless marked as a game.").size(11.0).color(MUTED));
             ui.horizontal(|ui|{
                 ui.label("FPS line style");
                 changed|=ui.radio_value(&mut self.settings.performance_style,LineStyle::TextOnly,"Text only").changed();
@@ -1111,6 +1120,12 @@ impl NotchApp {
                 ui.horizontal(|ui|{
                     ui.label(RichText::new(format!("{} · PID {}",app.name,app.pid)).size(11.0).color(MUTED));
                     if ui.small_button("Save style for this app").clicked(){self.settings.performance_profiles.insert(app.name.to_ascii_lowercase(),self.settings.performance_style);changed=true;}
+                    let name=app.name.to_ascii_lowercase();
+                    let marked=self.settings.performance_games.contains(&name);
+                    if ui.small_button(if marked {"Unmark as game"} else {"Mark as game"}).clicked(){
+                        if marked {self.settings.performance_games.retain(|g|*g!=name);} else {self.settings.performance_games.push(name);}
+                        changed=true;
+                    }
                 });
             }
             ui.label(RichText::new(&self.performance_reading.status).size(11.0).color(if self.performance_demo {AMBER}else{MUTED}));
@@ -1331,7 +1346,7 @@ impl eframe::App for NotchApp {
         let elapsed = now.duration_since(self.last_tick);
         self.last_tick = now;
         if self.timer.advance(elapsed) {
-            if !self.settings.performance_enabled {
+            if !self.gaming_line() {
                 self.tab = Tab::Focus;
                 self.expanded = true;
             }
@@ -1360,7 +1375,7 @@ impl eframe::App for NotchApp {
                         if self.expanded {
                             self.collapse();
                         } else {
-                            if self.settings.performance_enabled {
+                            if self.gaming_line() {
                                 self.tab = Tab::System;
                                 self.performance_page = true;
                             }
@@ -1385,7 +1400,7 @@ impl eframe::App for NotchApp {
         if !self.expanded
             && ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Space))
         {
-            if self.settings.performance_enabled {
+            if self.gaming_line() {
                 self.tab = Tab::System;
                 self.performance_page = true;
             }
@@ -1421,7 +1436,7 @@ impl eframe::App for NotchApp {
             },
             |(_, w)| w,
         );
-        let passthrough = self.settings.performance_enabled && !self.expanded;
+        let passthrough = self.gaming_line() && !self.expanded;
         if !platform::set_passthrough(frame, passthrough) && passthrough != self.last_passthrough {
             ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(passthrough));
             self.last_passthrough = passthrough;
@@ -1442,7 +1457,7 @@ impl eframe::App for NotchApp {
                 self.hover_started = None;
             }
             if !self.expanded
-                && !self.settings.performance_enabled
+                && !self.gaming_line()
                 && self.settings.expand_on_hover
                 && !self.suppress_hover
             {
@@ -1524,7 +1539,7 @@ impl eframe::App for NotchApp {
                     sw: 24,
                     se: 24,
                 };
-                let text_only = self.settings.performance_enabled
+                let text_only = self.gaming_line()
                     && !self.expanded
                     && self.settings.performance_style == LineStyle::TextOnly;
                 if !text_only {
@@ -1590,6 +1605,7 @@ impl eframe::App for NotchApp {
             enabled: self.settings.performance_enabled,
             target: self.settings.performance_target.clone(),
             demo: self.performance_demo,
+            games: self.settings.performance_games.clone(),
         });
         if self
             .monitor

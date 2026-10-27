@@ -7,8 +7,9 @@ Sela 0.3.0 adds a native gaming line. MSI Afterburner and RTSS are not required.
 1. Open Sela with **Ctrl+Alt+N** or the tray menu.
 2. Choose **System → Performance** and enable **Show gaming performance line**.
 3. Choose **Text only** or **With background**. Both keep FPS, RAM, VRAM, GPU/CPU readings, frame time, and 1% low on one line.
-4. Select **Foreground application**, or choose a visible application's executable. Auto mode retains the last target while Sela or the desktop is focused. It follows foreground applications; it is not a game classifier.
-5. Close the panel. The gaming line passes mouse input through to the game and does not expand on hover. Open it with **Ctrl+Alt+N** or the tray. A focus timer ending does not force the gaming panel open.
+4. Select **Foreground application**, or choose a visible application's executable. Auto mode retains the last target while Sela or the desktop is focused.
+5. Keep **Only while a game is playing** on (the default) to show the gaming line only during play. A game is the foreground application when it is presenting frames and covers its whole monitor (exclusive or borderless fullscreen). Browsers and video players are ignored. Use **Mark as game** for a windowed game or to override that list. The line hides two seconds after the game leaves the foreground; Sela returns to the normal notch meanwhile.
+6. Close the panel. The gaming line passes mouse input through to the game and does not expand on hover. Open it with **Ctrl+Alt+N** or the tray. A focus timer ending does not force the gaming panel open.
 
 **Save style for this app** stores the selected style under its executable name. Settings persist locally. The strip fits the selected monitor's logical width, with an 816 × 48 default size. The detail panel is 600 × 440; System overview is 464 × 440.
 
