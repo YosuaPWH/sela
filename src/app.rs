@@ -31,6 +31,10 @@ const EXPANDED: Vec2 = vec2(464.0, 370.0);
 const MUSIC_COMPACT: Vec2 = vec2(580.0, 54.0);
 const CANVAS: Vec2 = vec2(600.0, 370.0);
 const PERFORMANCE_PANEL: Vec2 = vec2(600.0, 440.0);
+/// How long the pointer rests on the notch before it opens, and how long after
+/// it leaves before a hover-opened panel closes.
+const HOVER_OPEN: Duration = Duration::from_millis(150);
+const HOVER_CLOSE: Duration = Duration::from_millis(300);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -535,7 +539,6 @@ impl NotchApp {
             let delta = ui.input(|input| input.raw_scroll_delta.y);
             if let Some(forward) = self.header_wheel.input(delta, Instant::now()) {
                 self.tab = self.tab.step(forward);
-                self.hover_opened = false;
             }
         } else {
             self.header_wheel.leave();
@@ -582,7 +585,6 @@ impl NotchApp {
                 );
                 if response.clicked() {
                     self.tab = tab;
-                    self.hover_opened = false;
                 }
                 response.on_hover_text(format!("Open {text}"));
             }
@@ -977,7 +979,6 @@ impl NotchApp {
             {
                 self.timer.toggle();
                 self.last_tick = Instant::now();
-                self.hover_opened = false;
             }
             if icon_button(ui, Icon::Reset, "Reset timer", false, true).clicked() {
                 self.timer.reset(self.settings.focus_minutes);
@@ -1462,7 +1463,7 @@ impl eframe::App for NotchApp {
                 && !self.suppress_hover
             {
                 let since = self.hover_started.get_or_insert(now);
-                if now.duration_since(*since) >= Duration::from_millis(240) {
+                if now.duration_since(*since) >= HOVER_OPEN {
                     self.expanded = true;
                     self.hover_opened = true;
                     self.hover_started = None;
@@ -1476,7 +1477,7 @@ impl eframe::App for NotchApp {
             }
             if self.expanded && self.hover_opened && !self.pinned {
                 let since = self.pointer_left.get_or_insert(now);
-                if now.duration_since(*since) >= Duration::from_millis(650) {
+                if now.duration_since(*since) >= HOVER_CLOSE {
                     self.expanded = false;
                     self.pointer_left = None;
                 }
@@ -1560,7 +1561,7 @@ impl eframe::App for NotchApp {
                     let expanded_size = self.expanded_size();
                     let expanded_left = (canvas_width - expanded_size.x) * 0.5;
                     let content = Rect::from_min_size(
-                        pos2(expanded_left, (1.0 - content_alpha) * 6.0),
+                        pos2(expanded_left, (1.0 - content_alpha) * 10.0),
                         expanded_size,
                     )
                     .shrink2(vec2(24.0, 18.0));
@@ -1638,14 +1639,10 @@ impl eframe::App for NotchApp {
             }));
         }
         if let Some(started) = self.hover_started {
-            ctx.request_repaint_after(
-                Duration::from_millis(240).saturating_sub(now.duration_since(started)),
-            );
+            ctx.request_repaint_after(HOVER_OPEN.saturating_sub(now.duration_since(started)));
         }
         if let Some(left) = self.pointer_left {
-            ctx.request_repaint_after(
-                Duration::from_millis(650).saturating_sub(now.duration_since(left)),
-            );
+            ctx.request_repaint_after(HOVER_CLOSE.saturating_sub(now.duration_since(left)));
         }
     }
 }
