@@ -170,7 +170,7 @@ impl NotchApp {
             settings.performance_enabled = true;
         }
         let performance_page = settings.performance_enabled;
-        let integration = match platform::DesktopIntegration::new() {
+        let integration = match platform::DesktopIntegration::new(&cc.egui_ctx) {
             Ok(integration) => {
                 if let Some(warning) = integration.warning() {
                     error = Some(warning.to_owned());
@@ -1422,7 +1422,7 @@ impl eframe::App for NotchApp {
             |(_, w)| w,
         );
         let passthrough = self.settings.performance_enabled && !self.expanded;
-        if passthrough != self.last_passthrough {
+        if !platform::set_passthrough(frame, passthrough) && passthrough != self.last_passthrough {
             ctx.send_viewport_cmd(egui::ViewportCommand::MousePassthrough(passthrough));
             self.last_passthrough = passthrough;
         }
