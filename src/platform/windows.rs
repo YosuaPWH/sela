@@ -4,7 +4,14 @@ use global_hotkey::{
     GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState,
 };
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use std::{sync::mpsc, thread, time::Duration};
+use std::{
+    sync::{
+        atomic::{AtomicIsize, Ordering},
+        mpsc,
+    },
+    thread,
+    time::Duration,
+};
 use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem},
     Icon, TrayIcon, TrayIconBuilder,
@@ -18,7 +25,8 @@ use windows::{
     },
     Win32::{
         Foundation::{
-            CloseHandle, GetLastError, BOOL, ERROR_ALREADY_EXISTS, HANDLE, HWND, LPARAM, RECT,
+            CloseHandle, GetLastError, BOOL, COLORREF, ERROR_ALREADY_EXISTS, HANDLE, HWND, LPARAM,
+            RECT,
         },
         Graphics::Gdi::{
             CreateRectRgn, DeleteObject, EnumDisplayMonitors, GetMonitorInfoW, SetWindowRgn, HDC,
@@ -30,7 +38,10 @@ use windows::{
             Threading::CreateMutexW,
             WinRT::{RoInitialize, RO_INIT_MULTITHREADED},
         },
-        UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK, MONITORINFOF_PRIMARY},
+        UI::WindowsAndMessaging::{
+            GetWindowLongW, MessageBoxW, SetLayeredWindowAttributes, SetWindowLongW, GWL_EXSTYLE,
+            LWA_ALPHA, MB_ICONERROR, MB_OK, MONITORINFOF_PRIMARY, WS_EX_LAYERED, WS_EX_TRANSPARENT,
+        },
     },
 };
 
@@ -57,11 +68,7 @@ impl WindowRegion {
         if self.last == Some(bounds) {
             return Ok(());
         }
-        let handle = frame.window_handle().map_err(|e| e.to_string())?;
-        let RawWindowHandle::Win32(handle) = handle.as_raw() else {
-            return Err("Windows window handle is unavailable".into());
-        };
-        let hwnd = HWND(handle.hwnd.get() as *mut _);
+        let hwnd = window(frame)?;
         unsafe {
             let region = CreateRectRgn(bounds[0], bounds[1], bounds[2], bounds[3]);
             if region.0.is_null() {
@@ -77,6 +84,55 @@ impl WindowRegion {
         }
         self.last = Some(bounds);
         Ok(())
+    }
+}
+
+fn window(frame: &eframe::Frame) -> Result<HWND, String> {
+    let handle = frame.window_handle().map_err(|e| e.to_string())?;
+    let RawWindowHandle::Win32(handle) = handle.as_raw() else {
+        return Err("Windows window handle is unavailable".into());
+    };
+    Ok(HWND(handle.hwnd.get() as *mut _))
+}
+
+/// The overlay HWND, published so tray and shortcut handlers can restore mouse
+/// input even while the frame loop is not running.
+static OVERLAY: AtomicIsize = AtomicIsize::new(0);
+
+/// Click-through is applied here instead of through winit: winit adds
+/// WS_EX_LAYERED without layered attributes, and such a window is never painted
+/// again, which also stops the frame loop that reacts to the tray and shortcut.
+/// Returns false when the window handle is unavailable.
+pub fn set_passthrough(frame: &eframe::Frame, enabled: bool) -> bool {
+    let Ok(hwnd) = window(frame) else {
+        return false;
+    };
+    OVERLAY.store(hwnd.0 as isize, Ordering::Relaxed);
+    unsafe { apply_passthrough(hwnd, enabled) };
+    true
+}
+
+unsafe fn apply_passthrough(hwnd: HWND, enabled: bool) {
+    let flags = (WS_EX_LAYERED.0 | WS_EX_TRANSPARENT.0) as i32;
+    let style = GetWindowLongW(hwnd, GWL_EXSTYLE);
+    let wanted = if enabled {
+        style | flags
+    } else {
+        style & !flags
+    };
+    if wanted == style {
+        return;
+    }
+    SetWindowLongW(hwnd, GWL_EXSTYLE, wanted);
+    if enabled {
+        let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
+    }
+}
+
+fn restore_input() {
+    let hwnd = OVERLAY.load(Ordering::Relaxed);
+    if hwnd != 0 {
+        unsafe { apply_passthrough(HWND(hwnd as *mut _), false) };
     }
 }
 
@@ -296,16 +352,12 @@ pub fn media_bridge() -> MediaBridge {
 pub struct DesktopIntegration {
     _tray: TrayIcon,
     _hotkeys: GlobalHotKeyManager,
-    shortcut: u32,
-    toggle: tray_icon::menu::MenuId,
-    focus: tray_icon::menu::MenuId,
-    settings: tray_icon::menu::MenuId,
-    quit: tray_icon::menu::MenuId,
+    actions: mpsc::Receiver<Action>,
     warning: Option<String>,
 }
 
 impl DesktopIntegration {
-    pub fn new() -> Result<Self, String> {
+    pub fn new(ctx: &eframe::egui::Context) -> Result<Self, String> {
         let menu = Menu::new();
         let toggle = MenuItem::new("Open / close    Ctrl+Alt+N", true, None);
         let focus = MenuItem::new("Focus timer", true, None);
@@ -335,39 +387,60 @@ impl DesktopIntegration {
         let warning = hotkeys.register(shortcut).err().map(|e| {
             format!("Ctrl+Alt+N is unavailable: {e}. Use the tray menu or click the notch.")
         });
+        let (tx, actions) = mpsc::channel();
+        let ctx = ctx.clone();
+        // Handlers run inside the Windows message loop, so they still fire when
+        // the overlay is click-through or not repainting.
+        let dispatch = move |action: Action| {
+            if action == Action::Quit {
+                // Last resort if the frame loop never gets to close the window.
+                thread::spawn(|| {
+                    thread::sleep(Duration::from_secs(2));
+                    std::process::exit(0);
+                });
+            } else {
+                restore_input();
+            }
+            let _ = tx.send(action);
+            ctx.request_repaint();
+        };
+        let menu_dispatch = dispatch.clone();
+        let (toggle, focus, settings, quit) = (
+            toggle.id().clone(),
+            focus.id().clone(),
+            settings.id().clone(),
+            quit.id().clone(),
+        );
+        MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
+            let action = if event.id == toggle {
+                Action::Toggle
+            } else if event.id == focus {
+                Action::Focus
+            } else if event.id == settings {
+                Action::Settings
+            } else if event.id == quit {
+                Action::Quit
+            } else {
+                return;
+            };
+            menu_dispatch(action);
+        }));
+        let shortcut = shortcut.id();
+        GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
+            if event.id == shortcut && event.state == HotKeyState::Pressed {
+                dispatch(Action::Toggle);
+            }
+        }));
         Ok(Self {
             _tray: tray,
             _hotkeys: hotkeys,
-            shortcut: shortcut.id(),
-            toggle: toggle.id().clone(),
-            focus: focus.id().clone(),
-            settings: settings.id().clone(),
-            quit: quit.id().clone(),
+            actions,
             warning,
         })
     }
 
     pub fn poll(&self) -> Option<Action> {
-        if let Ok(event) = GlobalHotKeyEvent::receiver().try_recv() {
-            if event.id == self.shortcut && event.state == HotKeyState::Pressed {
-                return Some(Action::Toggle);
-            }
-        }
-        if let Ok(event) = MenuEvent::receiver().try_recv() {
-            if event.id == self.toggle {
-                return Some(Action::Toggle);
-            }
-            if event.id == self.focus {
-                return Some(Action::Focus);
-            }
-            if event.id == self.settings {
-                return Some(Action::Settings);
-            }
-            if event.id == self.quit {
-                return Some(Action::Quit);
-            }
-        }
-        None
+        self.actions.try_recv().ok()
     }
 
     pub fn warning(&self) -> Option<&str> {
