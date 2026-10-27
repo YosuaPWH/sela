@@ -155,12 +155,12 @@
     "motion": [
       {
         "name": "shell-dimensions",
-        "value": "Exact critical damping; independent width and height; opening omega 32/s; closing omega 38/s",
+        "value": "Exact critical damping; independent width and height; opening omega 22/s; closing omega 26/s",
         "purpose": "Retain position and velocity through retargets; animate the silhouette and Win32 input region within the at most 840 × 440 logical-point backing viewport."
       },
       {
         "name": "shell-content-reveal",
-        "value": "smoothstep; compact progress 0.02–0.30; expanded 0.20–0.92; vertical offset 6pt → 0pt",
+        "value": "smoothstep; compact progress 0.00–0.35; expanded 0.25–0.95; vertical offset 10pt → 0pt",
         "purpose": "Lay out expanded text at final width under the animated mask; avoid reflow and late content swaps."
       },
       {
@@ -175,12 +175,12 @@
       },
       {
         "name": "hover-open-delay",
-        "value": "240ms",
+        "value": "150ms",
         "purpose": "Delay optional hover opening to avoid accidental activation."
       },
       {
         "name": "hover-close-delay",
-        "value": "650ms",
+        "value": "300ms",
         "purpose": "Collapse an unpinned hover-opened panel after pointer exit."
       },
       {

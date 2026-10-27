@@ -1,5 +1,10 @@
 use std::time::Duration;
 
+/// Spring stiffness for opening and closing. Lower values glide longer; closing
+/// stays slightly quicker so the notch gets out of the way.
+const OPEN_OMEGA: f64 = 22.0;
+const CLOSE_OMEGA: f64 = 26.0;
+
 /// An exact critically damped spring. Retargeting keeps both position and velocity,
 /// and the solution is independent of the display's refresh rate.
 pub struct Expansion {
@@ -41,7 +46,11 @@ impl Expansion {
 
         // Advance toward the previous target first: an input received after an idle
         // frame must not be charged the whole idle interval on its first frame.
-        let omega = if self.target > 0.5 { 32.0 } else { 38.0 };
+        let omega = if self.target > 0.5 {
+            OPEN_OMEGA
+        } else {
+            CLOSE_OMEGA
+        };
         let seconds = elapsed.as_secs_f64();
         let displacement = self.value - self.target;
         let coefficient = self.velocity + omega * displacement;
@@ -57,11 +66,11 @@ impl Expansion {
     }
 
     pub fn compact_opacity(&self) -> f32 {
-        1.0 - smoothstep(0.02, 0.30, self.value())
+        1.0 - smoothstep(0.0, 0.35, self.value())
     }
 
     pub fn content_opacity(&self) -> f32 {
-        smoothstep(0.20, 0.92, self.value())
+        smoothstep(0.25, 0.95, self.value())
     }
 }
 
@@ -100,9 +109,9 @@ impl Dimension {
             return;
         }
         let omega = if self.target >= self.value {
-            32.0
+            OPEN_OMEGA
         } else {
-            38.0
+            CLOSE_OMEGA
         };
         let seconds = elapsed.as_secs_f64();
         let displacement = self.value - self.target;
