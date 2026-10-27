@@ -95,7 +95,7 @@ pub struct DesktopIntegration;
 
 #[cfg(not(windows))]
 impl DesktopIntegration {
-    pub fn new() -> Result<Self, String> {
+    pub fn new(_ctx: &eframe::egui::Context) -> Result<Self, String> {
         Ok(Self)
     }
     pub fn poll(&self) -> Option<Action> {
@@ -104,6 +104,11 @@ impl DesktopIntegration {
     pub fn warning(&self) -> Option<&str> {
         None
     }
+}
+
+#[cfg(not(windows))]
+pub fn set_passthrough(_frame: &eframe::Frame, _enabled: bool) -> bool {
+    false
 }
 
 #[cfg(not(windows))]
