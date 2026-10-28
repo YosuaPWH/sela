@@ -6,7 +6,10 @@ use sela_notch::{app::NotchApp, platform};
 fn main() -> eframe::Result {
     let _instance = match platform::single_instance() {
         Ok(Some(instance)) => instance,
-        Ok(None) => return Ok(()),
+        Ok(None) => {
+            platform::signal_existing();
+            return Ok(());
+        }
         Err(e) => {
             platform::startup_error(&format!("Cannot check for an existing instance: {e}"));
             return Ok(());

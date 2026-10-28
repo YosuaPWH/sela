@@ -279,6 +279,15 @@ impl NotchApp {
         ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
     }
 
+    /// Open from the keyboard, tray or a relaunch: over a game, show its controls.
+    fn open_shell(&mut self, ctx: &egui::Context) {
+        if self.gaming_line() {
+            self.tab = Tab::System;
+            self.performance_page = true;
+        }
+        self.open(ctx);
+    }
+
     fn collapse(&mut self) {
         self.expanded = false;
         self.pinned = false;
@@ -1166,6 +1175,21 @@ impl NotchApp {
                     }
                 });
             }
+            // Windowed games are never captured automatically, so they are marked from this list.
+            ui.horizontal_wrapped(|ui|{
+                ui.label("Games");
+                egui::ComboBox::from_id_salt("mark-game").width(200.0).selected_text("Mark a running app…").show_ui(ui,|ui|{
+                    for app in &applications {
+                        let name=app.name.to_ascii_lowercase();
+                        if !self.settings.performance_games.contains(&name)&&ui.selectable_label(false,&app.name).clicked(){self.settings.performance_games.push(name);changed=true;}
+                    }
+                });
+                let mut removed=None;
+                for game in &self.settings.performance_games {
+                    if ui.small_button(format!("{game} ×")).on_hover_text("Unmark as game").clicked(){removed=Some(game.clone());}
+                }
+                if let Some(game)=removed{self.settings.performance_games.retain(|g|*g!=game);changed=true;}
+            });
             ui.label(RichText::new(&self.performance_reading.status).size(11.0).color(if self.performance_demo {AMBER}else{MUTED}));
             let number=|n:Option<f64>,decimals:usize|n.filter(|v|v.is_finite()).map_or_else(||"Unavailable".to_owned(),|v|format!("{v:.decimals$}"));
             let r=&self.performance_reading;
@@ -1422,15 +1446,10 @@ impl eframe::App for NotchApp {
         if let Some(integration) = &self.integration {
             if let Some(action) = integration.poll() {
                 match action {
-                    Action::Toggle => {
-                        if self.expanded {
-                            self.collapse();
-                        } else {
-                            if self.gaming_line() {
-                                self.tab = Tab::System;
-                                self.performance_page = true;
-                            }
-                            self.open(ctx);
+                    Action::Toggle if self.expanded => self.collapse(),
+                    Action::Toggle | Action::Open => {
+                        if !self.expanded {
+                            self.open_shell(ctx);
                         }
                     }
                     Action::Focus => {
@@ -1451,11 +1470,7 @@ impl eframe::App for NotchApp {
         if !self.expanded
             && ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Space))
         {
-            if self.gaming_line() {
-                self.tab = Tab::System;
-                self.performance_page = true;
-            }
-            self.open(ctx);
+            self.open_shell(ctx);
         }
         while let Ok(reading) = self.performance.updates.try_recv() {
             if let Some(session) = &reading.completed {
@@ -1645,6 +1660,7 @@ impl eframe::App for NotchApp {
             enabled: self.settings.performance_enabled,
             target: self.settings.performance_target.clone(),
             demo: self.performance_demo,
+            auto: self.settings.performance_auto,
             games: self.settings.performance_games.clone(),
         });
         if self

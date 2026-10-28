@@ -57,6 +57,8 @@ pub struct Configuration {
     pub enabled: bool,
     pub target: String,
     pub demo: bool,
+    /// Only capture applications that count as games.
+    pub auto: bool,
     /// Lowercase executable names that always count as games.
     pub games: Vec<String>,
 }
@@ -664,11 +666,23 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
                 name: "Sela demo.exe".into(),
             })
         } else if config.target.is_empty() {
-            native::foreground().or_else(|| {
+            let retained = || {
                 target
                     .clone()
                     .filter(|t| reading.applications.iter().any(|a| a.pid == t.pid))
-            })
+            };
+            if config.auto {
+                // Only games are worth a PresentMon process; with Sela or the
+                // desktop in front, keep the last one.
+                match native::foreground_window() {
+                    Some(Foreground::App { app, fullscreen }) => {
+                        is_game(&app.name, fullscreen, &config.games).then_some(app)
+                    }
+                    Some(Foreground::Own) | None => retained(),
+                }
+            } else {
+                native::foreground().or_else(retained)
+            }
         } else {
             reading
                 .applications
@@ -702,8 +716,12 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
                     }
                 }
             } else {
-                reading.status =
-                    "Waiting for a foreground application. Choose a game below.".into();
+                reading.status = if config.auto {
+                    "Waiting for a fullscreen game. Mark a windowed game below."
+                } else {
+                    "Waiting for a foreground application. Choose a game below."
+                }
+                .into();
             }
         }
         let mut frames = Vec::new();
@@ -995,6 +1013,7 @@ mod tests {
             enabled: true,
             demo: true,
             target: String::new(),
+            auto: true,
             games: vec![],
         });
         loop {

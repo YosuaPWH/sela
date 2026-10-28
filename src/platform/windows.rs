@@ -14,7 +14,7 @@ use std::{
 };
 use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem},
-    Icon, TrayIcon, TrayIconBuilder,
+    Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent,
 };
 use windows::{
     core::{w, Error, HSTRING},
@@ -35,7 +35,10 @@ use windows::{
         System::{
             Diagnostics::Debug::MessageBeep,
             Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS},
-            Threading::CreateMutexW,
+            Threading::{
+                CreateEventW, CreateMutexW, OpenEventW, SetEvent, WaitForSingleObject,
+                EVENT_MODIFY_STATE, INFINITE,
+            },
             WinRT::{RoInitialize, RO_INIT_MULTITHREADED},
         },
         UI::WindowsAndMessaging::{
@@ -211,6 +214,19 @@ pub fn single_instance() -> Result<Option<Instance>, String> {
     }
 }
 
+/// Signalled by a second launch so the running instance opens its panel.
+const OPEN_EVENT: windows::core::PCWSTR = w!("Local\\Sela.App.Open");
+
+/// Ask the running instance to open; a relaunch must never look like a no-op.
+pub fn signal_existing() {
+    unsafe {
+        if let Ok(event) = OpenEventW(EVENT_MODIFY_STATE, false, OPEN_EVENT) {
+            let _ = SetEvent(event);
+            let _ = CloseHandle(event);
+        }
+    }
+}
+
 pub fn battery() -> Option<crate::telemetry::Battery> {
     let mut status = SYSTEM_POWER_STATUS::default();
     unsafe {
@@ -379,6 +395,8 @@ impl DesktopIntegration {
             .with_tooltip("Sela • Ctrl+Alt+N")
             .with_icon(icon)
             .with_menu(Box::new(menu))
+            // Left click toggles the panel; right click opens the menu.
+            .with_menu_on_left_click(false)
             .build()
             .map_err(|e| e.to_string())?;
         let hotkeys = GlobalHotKeyManager::new().map_err(|e| e.to_string())?;
@@ -405,6 +423,32 @@ impl DesktopIntegration {
             ctx.request_repaint();
         };
         let menu_dispatch = dispatch.clone();
+        let tray_dispatch = dispatch.clone();
+        let relaunch_dispatch = dispatch.clone();
+        TrayIconEvent::set_event_handler(Some(move |event: TrayIconEvent| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                tray_dispatch(Action::Toggle);
+            }
+        }));
+        // Auto-reset event; HANDLE is not Send, so the thread receives its value.
+        if let Ok(event) = unsafe { CreateEventW(None, false, false, OPEN_EVENT) } {
+            let event = event.0 as isize;
+            thread::Builder::new()
+                .name("sela-relaunch".into())
+                .spawn(move || loop {
+                    let wait = unsafe { WaitForSingleObject(HANDLE(event as *mut _), INFINITE) };
+                    if wait.0 != 0 {
+                        break;
+                    }
+                    relaunch_dispatch(Action::Open);
+                })
+                .map_err(|e| e.to_string())?;
+        }
         let (toggle, focus, settings, quit) = (
             toggle.id().clone(),
             focus.id().clone(),
