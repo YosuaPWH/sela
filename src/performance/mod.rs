@@ -57,6 +57,8 @@ pub struct Configuration {
     pub enabled: bool,
     pub target: String,
     pub demo: bool,
+    /// Only capture applications that count as games.
+    pub auto: bool,
     /// Lowercase executable names that always count as games.
     pub games: Vec<String>,
 }
@@ -88,6 +90,24 @@ const NOT_GAMES: &[&str] = &[
     "video.ui.exe",
     "powerpnt.exe",
 ];
+
+fn game_in_foreground(
+    foreground: Option<Foreground>,
+    target: Option<&Application>,
+    presenting: bool,
+    was_gaming: bool,
+    games: &[String],
+) -> bool {
+    presenting
+        && match foreground {
+            // Sela takes the foreground while its panel is open over a game.
+            Some(Foreground::Own) => was_gaming,
+            Some(Foreground::App { app, fullscreen }) => {
+                target.is_some_and(|t| t.pid == app.pid) && is_game(&app.name, fullscreen, games)
+            }
+            None => false,
+        }
+}
 
 /// Brief alt-tabs and loading screens must not make the gaming line flicker.
 const GAME_GRACE: Duration = Duration::from_secs(2);
@@ -307,6 +327,8 @@ struct Recording {
     target: Application,
     chain: String,
     frames: Vec<f64>,
+    /// Running total of `frames`, in milliseconds.
+    captured_ms: f64,
     duration: f64,
     demo: bool,
 }
@@ -314,6 +336,7 @@ impl Recording {
     fn push(&mut self, frame: &Frame) {
         if frame.pid == self.target.pid && frame.chain == self.chain {
             self.frames.push(frame.ms);
+            self.captured_ms += frame.ms;
         }
     }
     fn finish(self) -> Option<Arc<Session>> {
@@ -327,7 +350,7 @@ impl Recording {
             pid: self.target.pid,
             swap_chain: self.chain,
             demo: self.demo,
-            captured_seconds: self.frames.iter().sum::<f64>() / 1000.0,
+            captured_seconds: self.captured_ms / 1000.0,
             frame_times_ms: self.frames,
             stats,
         }))
@@ -560,7 +583,10 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
             Duration::from_secs(30)
         }) {
             Ok(Control::Configure(next)) => {
-                if next != config {
+                // The games list only affects detection; keep the running capture.
+                if (next.enabled, &next.target, next.demo)
+                    != (config.enabled, &config.target, config.demo)
+                {
                     if let Some(r) = recording.take() {
                         reading.completed = r.finish();
                     }
@@ -583,6 +609,7 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
                             target: app,
                             chain,
                             frames: vec![],
+                            captured_ms: 0.0,
                             duration: seconds as f64,
                             demo: config.demo,
                         });
@@ -639,11 +666,23 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
                 name: "Sela demo.exe".into(),
             })
         } else if config.target.is_empty() {
-            native::foreground().or_else(|| {
+            let retained = || {
                 target
                     .clone()
                     .filter(|t| reading.applications.iter().any(|a| a.pid == t.pid))
-            })
+            };
+            if config.auto {
+                // Only games are worth a PresentMon process; with Sela or the
+                // desktop in front, keep the last one.
+                match native::foreground_window() {
+                    Some(Foreground::App { app, fullscreen }) => {
+                        is_game(&app.name, fullscreen, &config.games).then_some(app)
+                    }
+                    Some(Foreground::Own) | None => retained(),
+                }
+            } else {
+                native::foreground().or_else(retained)
+            }
         } else {
             reading
                 .applications
@@ -677,8 +716,12 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
                     }
                 }
             } else {
-                reading.status =
-                    "Waiting for a foreground application. Choose a game below.".into();
+                reading.status = if config.auto {
+                    "Waiting for a fullscreen game. Mark a windowed game below."
+                } else {
+                    "Waiting for a foreground application. Choose a game below."
+                }
+                .into();
             }
         }
         let mut frames = Vec::new();
@@ -718,17 +761,17 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
         } else if stream.is_some() {
             reading.status="No recent frames. Keep the game running; choose its process or check capture permissions.".into();
         }
+        // Without capture permission there are no frames to confirm rendering;
+        // fall back to the fullscreen check alone rather than never showing the line.
+        let presenting = reading.frames.is_some() || blocked && target.is_some();
         let detected = config.demo
-            || match native::foreground_window() {
-                // Sela takes the foreground while its panel is open over a game.
-                Some(Foreground::Own) => reading.gaming,
-                Some(Foreground::App { app, fullscreen }) => {
-                    reading.target.as_ref().is_some_and(|t| t.pid == app.pid)
-                        && reading.frames.is_some()
-                        && is_game(&app.name, fullscreen, &config.games)
-                }
-                None => false,
-            };
+            || game_in_foreground(
+                native::foreground_window(),
+                target.as_ref(),
+                presenting,
+                reading.gaming,
+                &config.games,
+            );
         if detected {
             last_game = Some(now);
         }
@@ -755,12 +798,11 @@ fn run(rx: mpsc::Receiver<Control>, tx: mpsc::Sender<Reading>) {
             }
             last_hardware = now;
         }
-        reading.recording_seconds = recording
+        reading.recording_seconds = recording.as_ref().map(|r| r.captured_ms / 1000.0);
+        if recording
             .as_ref()
-            .map(|r| r.frames.iter().sum::<f64>() / 1000.0);
-        if recording.as_ref().is_some_and(|r| {
-            r.frames.len() >= 1_000_000 || r.frames.iter().sum::<f64>() / 1000.0 >= r.duration
-        }) {
+            .is_some_and(|r| r.frames.len() >= 1_000_000 || r.captured_ms / 1000.0 >= r.duration)
+        {
             reading.completed = recording.take().and_then(Recording::finish);
             reading.recording_seconds = None;
         }
@@ -814,6 +856,60 @@ mod tests {
         assert!(!is_game("Game.exe", false, &[]));
         assert!(!is_game("Chrome.exe", true, &[]));
         assert!(is_game("Chrome.exe", false, &marked));
+    }
+
+    #[test]
+    fn detection_follows_the_presenting_foreground_target() {
+        let game = Application {
+            pid: 7,
+            name: "game.exe".into(),
+        };
+        let front = |pid, fullscreen| {
+            Some(Foreground::App {
+                app: Application {
+                    pid,
+                    name: "game.exe".into(),
+                },
+                fullscreen,
+            })
+        };
+        assert!(game_in_foreground(
+            front(7, true),
+            Some(&game),
+            true,
+            false,
+            &[]
+        ));
+        assert!(!game_in_foreground(
+            front(8, true),
+            Some(&game),
+            true,
+            false,
+            &[]
+        ));
+        assert!(!game_in_foreground(
+            front(7, false),
+            Some(&game),
+            true,
+            false,
+            &[]
+        ));
+        // Sela in front keeps the state only while the game still presents.
+        assert!(game_in_foreground(
+            Some(Foreground::Own),
+            Some(&game),
+            true,
+            true,
+            &[]
+        ));
+        assert!(!game_in_foreground(
+            Some(Foreground::Own),
+            None,
+            false,
+            true,
+            &[]
+        ));
+        assert!(!game_in_foreground(None, Some(&game), true, true, &[]));
     }
 
     #[test]
@@ -880,6 +976,7 @@ mod tests {
             },
             chain: "a".into(),
             frames: vec![],
+            captured_ms: 0.0,
             duration: 30.0,
             demo: false,
         };
@@ -916,6 +1013,7 @@ mod tests {
             enabled: true,
             demo: true,
             target: String::new(),
+            auto: true,
             games: vec![],
         });
         loop {

@@ -65,7 +65,7 @@ The interface uses English. Track metadata and real lyrics retain the language p
 | **Unavailable lyrics** | **Settings** |
 | ![Unavailable lyrics message using demo data](docs/screenshots/sela-missing.png) | ![Sela settings and disclosure of data sent for lyric lookup](docs/screenshots/sela-settings.png) |
 
-Sela stays on top, without a window frame or taskbar button. The tray provides access to the panel, focus timer, settings, and exit. Pinning keeps a hover-opened panel visible. A single instance per Windows session prevents duplicate overlays.
+Sela stays on top, without a window frame or taskbar button. Left-click the tray icon to open or close the panel; right-click it for the focus timer, settings, and exit. Pinning keeps a hover-opened panel visible. A single instance per Windows session prevents duplicate overlays; launching Sela again opens the running instance's panel.
 
 ## Get started
 
@@ -120,7 +120,7 @@ cargo build --locked --release
 .\target\release\sela-notch.exe
 ```
 
-See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). Formatting, Clippy, and 28 tests passed on Linux. The Windows provider and its DXGI probe also passed cross-target compile and Clippy checks; Windows MSVC CI also passed real DXGI capture, static-runtime checks, packaging and install/uninstall validation. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
+See the [build guide](docs/BUILDING.md), [release guide](docs/RELEASING.md), [validation notes](docs/VALIDATION.md), [design system](DESIGN.md), and [product scope](PRODUCT.md). Formatting, Clippy, and 30 tests passed on Linux. The Windows provider and its DXGI probe also passed cross-target compile and Clippy checks; Windows MSVC CI also passed real DXGI capture, static-runtime checks, packaging and install/uninstall validation. Windows runtime behavior—including media, tray, global shortcuts, click-through, and mixed-DPI monitors—still requires direct testing on Windows.
 
 Version tags such as `v0.3.0` automatically build the executable, portable ZIP, and installer, test installation/uninstallation, and publish the files to GitHub Releases. The tag must match the package version in `Cargo.toml`; see the [release guide](docs/RELEASING.md) for subsequent releases.
 

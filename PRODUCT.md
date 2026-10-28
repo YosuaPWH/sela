@@ -8,7 +8,7 @@ adaptive
 Native Windows desktop overlay. Windows is the supported release target; Linux is a development preview.
 
 ## Stack
-Rust, eframe/egui with its AccessKit accessibility backend enabled, and Windows WinRT and Win32 APIs. The user explicitly requested Rust and Windows; the GUI library is an implementation choice. The package and executable are `sela-notch`, version 0.4.0. Performance capture uses an embedded, hash-pinned PresentMon provider, sysinfo, Windows performance counters, and optional NVIDIA NVML sensors.
+Rust, eframe/egui with its AccessKit accessibility backend enabled, and Windows WinRT and Win32 APIs. The user explicitly requested Rust and Windows; the GUI library is an implementation choice. The package and executable are `sela-notch`, version 0.4.1. Performance capture uses an embedded, hash-pinned PresentMon provider, sysinfo, Windows performance counters, and optional NVIDIA NVML sensors.
 
 ## Product Purpose
 A quiet top-center companion for music, focus, device status, and gaming performance. Sela keeps a small presence at rest and opens into the controls or information the user needs. The approved product direction is **Operate**: improve the working native overlay within its selected visual identity.

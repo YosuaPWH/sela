@@ -73,6 +73,8 @@ pub struct MediaBridge {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     Toggle,
+    /// Open the panel without toggling, e.g. when Sela is launched again.
+    Open,
     Focus,
     Settings,
     Quit,
@@ -121,6 +123,9 @@ pub fn startup_error(message: &str) {
 
 #[cfg(not(windows))]
 pub struct Instance;
+
+#[cfg(not(windows))]
+pub fn signal_existing() {}
 
 #[cfg(not(windows))]
 pub fn single_instance() -> Result<Option<Instance>, String> {
