@@ -35,6 +35,9 @@ const PERFORMANCE_PANEL: Vec2 = vec2(600.0, 440.0);
 /// it leaves before a hover-opened panel closes.
 const HOVER_OPEN: Duration = Duration::from_millis(150);
 const HOVER_CLOSE: Duration = Duration::from_millis(300);
+/// Settings are written this long after the last change, so dragging a slider
+/// does not rewrite the file every frame.
+const SAVE_DELAY: Duration = Duration::from_millis(500);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tab {
@@ -55,6 +58,7 @@ impl Tab {
 pub struct NotchApp {
     settings: Settings,
     settings_path: Option<PathBuf>,
+    save_due: Option<Instant>,
     error: Option<String>,
     expanded: bool,
     pinned: bool,
@@ -93,7 +97,6 @@ pub struct NotchApp {
     export_folder: Option<PathBuf>,
     monitor_width: f32,
     last_passthrough: bool,
-    last_application: String,
 }
 
 impl NotchApp {
@@ -174,6 +177,9 @@ impl NotchApp {
             settings.performance_enabled = true;
         }
         let performance_page = settings.performance_enabled;
+        // Outside a game the game-gated line shows the normal notch, so start there.
+        let start_on_performance =
+            performance_page && (!settings.performance_auto || performance_demo);
         let integration = match platform::DesktopIntegration::new(&cc.egui_ctx) {
             Ok(integration) => {
                 if let Some(warning) = integration.warning() {
@@ -214,6 +220,7 @@ impl NotchApp {
             timer: FocusTimer::new(settings.focus_minutes),
             settings,
             settings_path,
+            save_due: None,
             error,
             expanded,
             pinned: false,
@@ -221,7 +228,7 @@ impl NotchApp {
             pointer_left: None,
             hover_started: None,
             suppress_hover: false,
-            tab: if performance_page {
+            tab: if start_on_performance {
                 Tab::System
             } else {
                 Tab::Media
@@ -261,7 +268,6 @@ impl NotchApp {
                 .input(|i| i.viewport().monitor_size)
                 .map_or(1920.0, |v| v.x),
             last_passthrough: false,
-            last_application: String::new(),
         }
     }
 
@@ -282,6 +288,11 @@ impl NotchApp {
     }
 
     fn persist(&mut self) {
+        self.save_due = Some(Instant::now() + SAVE_DELAY);
+    }
+
+    fn save_now(&mut self) {
+        self.save_due = None;
         if let Some(path) = &self.settings_path {
             if let Err(e) = self.settings.save(path) {
                 self.error = Some(e);
@@ -306,6 +317,21 @@ impl NotchApp {
             origin.x + (width - size.x) * 0.5,
             origin.y + self.settings.top_offset,
         )));
+    }
+
+    /// Lowercase executable name of the captured application.
+    fn target_name(&self) -> Option<String> {
+        self.performance_reading
+            .target
+            .as_ref()
+            .map(|a| a.name.to_ascii_lowercase())
+    }
+
+    /// The style saved for the captured application, else the default style.
+    fn line_style(&self) -> LineStyle {
+        self.target_name()
+            .and_then(|name| self.settings.performance_profiles.get(&name).copied())
+            .unwrap_or(self.settings.performance_style)
     }
 
     /// Whether the closed notch is the click-through gaming line right now.
@@ -990,7 +1016,7 @@ impl NotchApp {
         let r = &self.performance_reading;
         let h = &r.hardware;
         let scale = shape.width() / 816.0;
-        let outlined = self.settings.performance_style == LineStyle::TextOnly;
+        let outlined = self.line_style() == LineStyle::TextOnly;
         let number = |n: Option<f64>, decimals: usize| {
             n.filter(|v| v.is_finite())
                 .map_or_else(|| "—".to_owned(), |v| format!("{v:.decimals$}"))
@@ -1102,11 +1128,20 @@ impl NotchApp {
             changed|=ui.checkbox(&mut self.settings.performance_enabled,"Show gaming performance line").changed();
             changed|=ui.checkbox(&mut self.settings.performance_auto,"Only while a game is playing").changed();
             ui.label(RichText::new("A game is a fullscreen application that is rendering frames. Browsers and video players are ignored unless marked as a game.").size(11.0).color(MUTED));
+            let mut style=self.line_style();
             ui.horizontal(|ui|{
                 ui.label("FPS line style");
-                changed|=ui.radio_value(&mut self.settings.performance_style,LineStyle::TextOnly,"Text only").changed();
-                changed|=ui.radio_value(&mut self.settings.performance_style,LineStyle::Background,"With background").changed();
+                ui.radio_value(&mut style,LineStyle::TextOnly,"Text only");
+                ui.radio_value(&mut style,LineStyle::Background,"With background");
             });
+            if style!=self.line_style(){
+                // Edit the captured app's saved style when it has one, else the default.
+                match self.target_name().filter(|name|self.settings.performance_profiles.contains_key(name)){
+                    Some(name)=>{self.settings.performance_profiles.insert(name,style);}
+                    None=>self.settings.performance_style=style,
+                }
+                changed=true;
+            }
             ui.label(RichText::new("All readings stay on one line. When closed, clicks pass through to your game; use Ctrl+Alt+N or the tray to open Sela.").size(11.0).color(MUTED));
             let applications=self.performance_reading.applications.clone();
             ui.horizontal(|ui|{
@@ -1120,8 +1155,10 @@ impl NotchApp {
             if let Some(app)=&self.performance_reading.target {
                 ui.horizontal(|ui|{
                     ui.label(RichText::new(format!("{} · PID {}",app.name,app.pid)).size(11.0).color(MUTED));
-                    if ui.small_button("Save style for this app").clicked(){self.settings.performance_profiles.insert(app.name.to_ascii_lowercase(),self.settings.performance_style);changed=true;}
                     let name=app.name.to_ascii_lowercase();
+                    if self.settings.performance_profiles.contains_key(&name){
+                        if ui.small_button("Use default style").clicked(){self.settings.performance_profiles.remove(&name);changed=true;}
+                    } else if ui.small_button("Save style for this app").clicked(){self.settings.performance_profiles.insert(name.clone(),self.settings.performance_style);changed=true;}
                     let marked=self.settings.performance_games.contains(&name);
                     if ui.small_button(if marked {"Unmark as game"} else {"Mark as game"}).clicked(){
                         if marked {self.settings.performance_games.retain(|g|*g!=name);} else {self.settings.performance_games.push(name);}
@@ -1273,7 +1310,7 @@ impl NotchApp {
                     .changed();
                 changed |= ui.checkbox(&mut self.settings.show_mascot, "Show Pijar, Sela's mascot").changed();
                 changed |= ui.checkbox(&mut self.settings.performance_enabled, "Show gaming performance line").changed();
-                ui.label(RichText::new("System → Performance configures capture and line style. Ctrl+Alt+N opens the click-through gaming line.").size(11.0).color(MUTED));
+                ui.label(RichText::new("System → Performance configures capture, style, and game detection. The line is click-through; Ctrl+Alt+N or the tray opens Sela.").size(11.0).color(MUTED));
                 changed |= ui.checkbox(&mut self.settings.lyrics_enabled, "Show music lyrics").changed();
                 ui.label(RichText::new("When enabled, the title, artist, and duration are sent to LRCLIB. Lyrics are cached locally.").size(11.0).color(MUTED));
                 changed |= ui
@@ -1342,10 +1379,23 @@ impl eframe::App for NotchApp {
         [0.0; 4]
     }
 
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        if self.save_due.is_some() {
+            self.save_now();
+        }
+    }
+
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let now = Instant::now();
         let elapsed = now.duration_since(self.last_tick);
         self.last_tick = now;
+        if let Some(due) = self.save_due {
+            if now >= due {
+                self.save_now();
+            } else {
+                ctx.request_repaint_after(due - now);
+            }
+        }
         if self.timer.advance(elapsed) {
             if !self.gaming_line() {
                 self.tab = Tab::Focus;
@@ -1415,17 +1465,6 @@ impl eframe::App for NotchApp {
                         self.performance_sessions.remove(0);
                     }
                 }
-            }
-            let application = reading
-                .target
-                .as_ref()
-                .map(|a| a.name.to_ascii_lowercase())
-                .unwrap_or_default();
-            if !application.is_empty() && application != self.last_application {
-                if let Some(style) = self.settings.performance_profiles.get(&application) {
-                    self.settings.performance_style = *style;
-                }
-                self.last_application = application;
             }
             self.performance_reading = reading;
         }
@@ -1542,7 +1581,7 @@ impl eframe::App for NotchApp {
                 };
                 let text_only = self.gaming_line()
                     && !self.expanded
-                    && self.settings.performance_style == LineStyle::TextOnly;
+                    && self.line_style() == LineStyle::TextOnly;
                 if !text_only {
                     ui.painter().rect_filled(shape, radius, BG);
                 }
